@@ -1,4 +1,175 @@
 #include "gaussians.h"
+class STO3GBasis {
+    private:
+        static arma::vec C_alphas, H_alphas, O_alphas, N_alphas, F_alphas; 
+        static arma::mat C2s_coeffs, C2p_coeffs, H1s_coeffs,O2s_coeffs, O2p_coeffs,
+                            N2s_coeffs, N2p_coeffs, F2s_coeffs, F2p_coeffs; 
+
+    public: 
+        static void getBasis(const std::string& atom_type) {
+            std::string filename;
+            
+
+            if (atom_type == "C") {
+                filename = "C_STO3G.txt"; 
+                std::vector<double> alphas;
+                std::vector<double> coeffs_2s;
+                std::vector<std::vector<double>> coeffs_p;
+                std::ifstream file(filename);
+                if (!file.is_open()) {
+                    throw std::runtime_error("Error opening the file " + filename);
+                }
+                std::string line;
+                while (std::getline(file, line)) {
+                    std::istringstream iss(line);
+                    double alpha, coeff_2s, coeff_px, coeff_py, coeff_pz;
+                    if (!(iss >> alpha >> coeff_2s >> coeff_px >> coeff_py >> coeff_pz)) {
+                        std::cerr << "Error reading line: " << line << std::endl;
+                        continue;
+                    }
+                    alphas.push_back(alpha);
+                    coeffs_2s.push_back(coeff_2s);
+                    coeffs_p.push_back({coeff_px, coeff_py, coeff_pz});
+                }
+                C_alphas = arma::vec(alphas);
+                C2s_coeffs = arma::vec(coeffs_2s);
+                C2p_coeffs = arma::mat(coeffs_p.size(), 3);
+                for (size_t i = 0; i < coeffs_p.size(); ++i) {
+                    C2p_coeffs.row(i) = arma::vec(coeffs_p[i]);
+                }
+
+                file.close();
+                
+            }
+            else if(atom_type == "H") {
+                filename = "H_STO3G.txt";
+                std::vector<double> alphas;
+                std::vector<double> coeffs_1s;
+                // std::vector<std::vector<double>> coeffs_p;
+                std::ifstream file(filename);
+                if (!file.is_open()) {
+                    throw std::runtime_error("Error opening the file " + filename);
+                }
+                std::string line;
+                while (std::getline(file, line)) {
+                    std::istringstream iss(line);
+                    double alpha, coeff_1s; 
+                    if (!(iss >> alpha >> coeff_1s)) {
+                        std::cerr << "Error reading line: " << line << std::endl;
+                        continue;
+                    }
+                    alphas.push_back(alpha);
+                    coeffs_1s.push_back(coeff_1s);
+                    // coeffs_p.push_back({coeff_px, coeff_py, coeff_pz});
+                }
+                H_alphas = arma::vec(alphas);
+                H1s_coeffs = arma::vec(coeffs_1s);
+                // C2p_coeffs = arma::mat(coeffs_p.size(), 3);
+                // for (size_t i = 0; i < coeffs_p.size(); ++i) {
+                //     C2p_coeffs.row(i) = arma::vec(coeffs_p[i]);
+                // }
+
+                file.close();
+            }
+            else if (atom_type == "O") {
+                filename = "O_STO3G.txt";
+                std::vector<double> alphas;
+                std::vector<double> coeffs_2s;
+                std::vector<std::vector<double>> coeffs_p;
+                std::ifstream file(filename);
+                if (!file.is_open()) {
+                    throw std::runtime_error("Error opening the file " + filename);
+                }
+                std::string line;
+                while (std::getline(file, line)) {
+                    std::istringstream iss(line);
+                    double alpha, coeff_2s, coeff_px, coeff_py, coeff_pz;
+                    if (!(iss >> alpha >> coeff_2s >> coeff_px >> coeff_py >> coeff_pz)) {
+                        std::cerr << "Error reading line: " << line << std::endl;
+                        continue;
+                    }
+                    alphas.push_back(alpha);
+                    coeffs_2s.push_back(coeff_2s);
+                    coeffs_p.push_back({coeff_px, coeff_py, coeff_pz});
+                }
+                O_alphas = arma::vec(alphas);
+                O2s_coeffs = arma::vec(coeffs_2s);
+                O2p_coeffs = arma::mat(coeffs_p.size(), 3);
+                for (size_t i = 0; i < coeffs_p.size(); ++i) {
+                    O2p_coeffs.row(i) = arma::vec(coeffs_p[i]);
+                }
+
+                file.close();
+            }
+            else if(atom_type == "N") {
+                filename = "F_STO3G.txt";
+                std::vector<double> alphas;
+                std::vector<double> coeffs_2s;
+                std::vector<std::vector<double>> coeffs_p;
+                std::ifstream file(filename);
+                if (!file.is_open()) {
+                    throw std::runtime_error("Error opening the file " + filename);
+                }
+                std::string line;
+                while (std::getline(file, line)) {
+                    std::istringstream iss(line);
+                    double alpha, coeff_2s, coeff_px, coeff_py, coeff_pz;
+                    if (!(iss >> alpha >> coeff_2s >> coeff_px >> coeff_py >> coeff_pz)) {
+                        std::cerr << "Error reading line: " << line << std::endl;
+                        continue;
+                    }
+                    alphas.push_back(alpha);
+                    coeffs_2s.push_back(coeff_2s);
+                    coeffs_p.push_back({coeff_px, coeff_py, coeff_pz});
+                }
+                N_alphas = arma::vec(alphas);
+                N2s_coeffs = arma::vec(coeffs_2s);
+                N2p_coeffs = arma::mat(coeffs_p.size(), 3);
+                for (size_t i = 0; i < coeffs_p.size(); ++i) {
+                    N2p_coeffs.row(i) = arma::vec(coeffs_p[i]);
+                }
+
+                file.close();
+            }
+            else if(atom_type == "F") {
+                filename = "F_STO3G.txt";
+                std::vector<double> alphas;
+                std::vector<double> coeffs_2s;
+                std::vector<std::vector<double>> coeffs_p;
+                std::ifstream file(filename);
+                if (!file.is_open()) {
+                    throw std::runtime_error("Error opening the file " + filename);
+                }
+                std::string line;
+                while (std::getline(file, line)) {
+                    std::istringstream iss(line);
+                    double alpha, coeff_2s, coeff_px, coeff_py, coeff_pz;
+                    if (!(iss >> alpha >> coeff_2s >> coeff_px >> coeff_py >> coeff_pz)) {
+                        std::cerr << "Error reading line: " << line << std::endl;
+                        continue;
+                    }
+                    alphas.push_back(alpha);
+                    coeffs_2s.push_back(coeff_2s);
+                    coeffs_p.push_back({coeff_px, coeff_py, coeff_pz});
+                }
+                N_alphas = arma::vec(alphas);
+                N2s_coeffs = arma::vec(coeffs_2s);
+                N2p_coeffs = arma::mat(coeffs_p.size(), 3);
+                for (size_t i = 0; i < coeffs_p.size(); ++i) {
+                    N2p_coeffs.row(i) = arma::vec(coeffs_p[i]);
+                }
+
+                file.close();
+            }
+            else {
+                throw std::cerr("No basis set for this atom type "+atom_type);
+            }
+            
+            
+            
+
+        }
+}
 std::vector<std::vector<int>> get_lmn(int L) {
     std::vector<std::vector<int>> combos; 
     for (int l = L; l >= 0; l--) {
@@ -35,6 +206,8 @@ double choose(int n, int k) { // n! / k!*(n-k!)!
     
 }
 
+
+
 /**
  * Calculate the factorial of n
  *
@@ -48,10 +221,11 @@ int double_factorial(int n) {
     else
         return n * double_factorial(n - 2);
 }
+PrimitiveGaussian(arma::vec& center, arma::vec& lmn, int atom) {}
 
-PrimitiveGaussian::PrimitiveGaussian(): R_({0.0, 0.0, 0.0}), N_(0.0), alpha_(0.0), l_(0), lmn_{0, 0,0} {}
-PrimitiveGaussian::PrimitiveGaussian(double x, double y, double z, double alpha, int l,std::vector<int> lmn) : R_({x, y, z}), alpha_(alpha), l_(l), N_(1.0), lmn_(lmn) {}
-PrimitiveGaussian::PrimitiveGaussian(double x, double y, double z, int l, double alpha): R_({x, y, z}), l_(l), alpha_(alpha), N_(1.0){} 
+// PrimitiveGaussian::PrimitiveGaussian(): R_({0.0, 0.0, 0.0}), N_(0.0), alpha_(0.0), l_(0), lmn_{0, 0,0} {}
+// PrimitiveGaussian::PrimitiveGaussian(double x, double y, double z, double alpha, int l,std::vector<int> lmn) : R_({x, y, z}), alpha_(alpha), l_(l), N_(1.0), lmn_(lmn) {}
+// PrimitiveGaussian::PrimitiveGaussian(double x, double y, double z, int l, double alpha): R_({x, y, z}), l_(l), alpha_(alpha), N_(1.0){} 
 double PrimitiveGaussian::overlap1d(double xa, double xb, double alpha, double beta,int la, int lb) const {
     double dx = (xa - xb);
     
@@ -123,12 +297,16 @@ std::ostream& operator<<(std::ostream& os, const PrimitiveGaussian& p) {
 
 
 ContractedGaussian::ContractedGaussian() {}
-ContractedGaussian::ContractedGaussian(std::vector<int> lmn, std::string shell): lmn_(lmn), shell_(shell){}
-void ContractedGaussian::addPrimitives(const std::vector<PrimitiveGaussian>& p, const std::vector<double>& contraction_coeffs) {
-    primitives_ = p;
-    ds_ = contraction_coeffs;
-
+ContractedGaussian::ContractedGaussian() {}
+void generateAOs(vector, int atomic_num) {
+    std::vector<PrimitiveGaussian> primitives; 
 }
+// ContractedGaussian::ContractedGaussian(std::vector<int> lmn, std::string shell): lmn_(lmn), shell_(shell){}
+// void ContractedGaussian::addPrimitives(const std::vector<PrimitiveGaussian>& p, const std::vector<double>& contraction_coeffs) {
+//     primitives_ = p;
+//     ds_ = contraction_coeffs;
+
+// }
 
 std::vector<double> ContractedGaussian::getN() {
     std::vector<double> norm_constants; 
