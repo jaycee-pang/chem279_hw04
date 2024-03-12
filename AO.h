@@ -15,53 +15,78 @@ class AO {
         arma::vec R_; // center 
         arma::vec alphas_;
         arma::vec ds_; 
-        aram::vec Ns_;
-        arma::uvec lmn_;
+        // aram::vec Ns_;
+        arma::vec lmn_;
     private: 
-        AO(const std::string& shell, const arma::vec& R, const arma::vec& alphas, const arma::vec& d_coeff, const arma::uvec& lmn)
-        : shell_type(shell), R_(R), alphas_(alpha), ds_(d_coeff), lmn_(lmn) {}
-        // to fix 
-        double overlap1d(double xa, double xb, double alpha, double beta,int la, int lb) const {
+        AO(const std::string& shell, const arma::vec& R, const arma::vec& alphas, const arma::vec& d_coeff, const arma::vec& lmn)
+        : shell_type(shell), R_(R), alphas_(alpha), ds_(d_coeff), lmn_(lmn) {
+            // normalize and combine these N with the contraction coefficient term 
+            for (size_t k = 0; k < alphas_.n_elem; k++) {
+                double self_overlap = overlap3d(R_, R_, alphas_(k), alphas_(k), lmn_, lmn_); 
+                ds_(k) /= std::sqrt(self_overlap); 
+            }
+
+        }
+
+        double overlap1d(double xa, double xb, double alpha, double beta, int la, int lb) const {
             double dx = (xa - xb);
             
             double exponential_term = exp(-(alpha*beta*dx*dx)/(alpha+ beta))* sqrt(M_PI / (alpha+ beta));
             double Rp = (alpha * xa + beta * xb)/ (alpha + beta); // new center 
             double result = 0.0; 
             
-            for (int i = 0; i <= la; i++) {
+            for (int i = 0; i <= la; i++) 
                 for (int j = 0; j <= lb; j++) {
                     if ((i +j)%2 == 1) 
                         continue; 
                     double double_fact = double_factorial(i +j-1);
                     double coeffs = choose(la, i) * choose(lb, j);
                     double num = std::pow(Rp-xa, (la -i)) * std::pow(Rp -xb, (lb-j));
-                    double denom = std::pow(2*(alpha+beta), (double(i+j)/2));
+                    double denom = std::pow(2*(alpha+beta), (double(i+j)/2.0));
                     double term = coeffs * double_fact * num / denom; 
                     result += term;
                     
                 }
-            }
+            
             result *= exponential_term; //*result; // *= exponential_term; 
             return result; 
         }  
-        // to fix 
+      
         double overlap3d(const & other) const {
             double Sabx = overlap1d(R_(0), other.R_(0), alpha_, other.alpha_, lmn_(0), other.lmn_(0));
             double Saby = overlap1d(R_(1), other.R_(1), alpha_, other.alpha_, lmn_(1), other.lmn_(1));
             double Sabz = overlap1d(R_(2), other.R_(2), alpha_, other.alpha_, lmn_(2), other.lmn_(2));
             return Sabx * Saby* Sabz; 
         }
-
-
-        double get_N() {
-            double integral = overlap1d(R_[0], R_[0], alpha_, alpha_, lmn_[0], lmn_[0]) *
-                            overlap1d(R_[1], R_[1], alpha_, alpha_, lmn_[1], lmn_[1]) *
-                            overlap1d(R_[2], R_[2], alpha_, alpha_,lmn_[2], lmn_[2]);
-            
-            N_ = 1.0 / std::sqrt(integral);
-            return N_;
+        // to fix 
+        double evaluate_contracted_overlap(const AO& ao1, const AO& ao2) const {
+            double sum = 0.0; 
+            for ()
+        }
+        // to fix
+        double overlap_matrix(const vector<AO> &MoleculeAOs) const {
+            int dim = MoleculeAOs.size();
+            double overlap = 0.0;
+            for (int i = 0; i < dim; i++) { 
+                for (int j = 0; j <= k; j++) {
+                    // double overlap_elm = primitives_[i].overlap3d(other.primitives_[j]);
+                    // overlap += Ns_[i] * other.Ns_[j]*ds_[i] * other.ds_[j] * primitive_overlap;
+                }
+            }
+            return overlap; 
 
         }
+
+
+        // double get_N() {
+        //     double integral = overlap1d(R_[0], R_[0], alpha_, alpha_, lmn_[0], lmn_[0]) *
+        //                     overlap1d(R_[1], R_[1], alpha_, alpha_, lmn_[1], lmn_[1]) *
+        //                     overlap1d(R_[2], R_[2], alpha_, alpha_,lmn_[2], lmn_[2]);
+            
+        //     N_ = 1.0 / std::sqrt(integral);
+        //     return N_;
+
+        // }
 
 
 
@@ -70,7 +95,7 @@ arma::vec C_alphas, H_alphas, O_alphas, N_alphas, F_alphas;
 static arma::mat C2s_coeffs, C2p_coeffs, H1s_coeffs,O2s_coeffs, O2p_coeffs,
                     N2s_coeffs, N2p_coeffs, F2s_coeffs, F2p_coeffs; 
 
-void getBasis_data(const std::string& atom_type) {
+void getBasis_data() {
     std::string filename;
     
 
@@ -166,7 +191,7 @@ void getBasis_data(const std::string& atom_type) {
         file.close();
     }
     else if(atom_type == "N") {
-        filename = "F_STO3G.txt";
+        filename = "N_STO3G.txt";
         std::vector<double> alphas;
         std::vector<double> coeffs_2s;
         std::vector<std::vector<double>> coeffs_p;
@@ -231,24 +256,19 @@ void getBasis_data(const std::string& atom_type) {
 
 }
 
-std::vector<std::vector<int>> get_lmn(int L) {
-    std::vector<std::vector<int>> combos; 
-    for (int l = L; l >= 0; l--) {
-        for (int m = L - l; m >= 0; m--) {
-            int n = L - l - m;
-            if (n >= 0) {
-                combos.push_back({l, m, n});
-            }
-        }
-    }
-    return combos; 
-}
-generateAOs() {
-    for (const Atom& atom: atoms_) {
+// std::vector<std::vector<int>> get_lmn(int L) {
+//     std::vector<std::vector<int>> combos; 
+//     for (int l = L; l >= 0; l--) {
+//         for (int m = L - l; m >= 0; m--) {
+//             int n = L - l - m;
+//             if (n >= 0) {
+//                 combos.push_back({l, m, n});
+//             }
+//         }
+//     }
+//     return combos; 
+// }
 
-
-    }
-}
 
 double choose(int n, int k) { // n! / k!*(n-k!)!
     if(n < k || k < 0) {
