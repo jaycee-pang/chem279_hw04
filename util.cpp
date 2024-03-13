@@ -17,7 +17,7 @@ double Combination(int n, int k)
   }
   double n_d = (double)n;
   result = 1.0;
-  int k_small = min(k, n - k);
+  int k_small = std::min(k, n - k);
   for(double j = (double)k_small; j > 0; j--){
     result /= j;
     result *= n_d;

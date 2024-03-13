@@ -1,5 +1,5 @@
-#ifndef AO_H
-#define AO_H
+#ifndef AO_Zhe_H
+#define AO_Zhe_H
 
 #include <iostream>
 #include <armadillo>
@@ -35,4 +35,4 @@ double Eval_Ov_AOs(AO& sh1, AO& sh2);
 
 void Eval_OV_mat(std::vector<AO> &MoleculeAOs, arma::mat &OV_mat);
 
-#endif // AO_H
+#endif // AO_Zhe_H
