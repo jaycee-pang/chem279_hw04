@@ -3,6 +3,7 @@
 // #define AO_H
 #include "molecule.h"
 class Molecule; 
+class AO;
 AO::AO() {}
 AO::AO(const std::string& shell, const arma::vec& R, const arma::vec& alphas, const arma::vec& d_coeff, const arma::uvec& lmn)
         : shell_type(shell), R_(R), alphas_(alphas), ds_(d_coeff), lmn_(lmn) {

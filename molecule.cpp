@@ -8,7 +8,7 @@ void Atom::print_atom() const {
 // #ifndef MOLECULE_H
 // #define MOLECULE_H
 // #include "AO.h"
-// class AO;
+class AO;
 Molecule::Molecule(std::string name, int n_atoms, int charge, std::vector<Atom> atoms) : name_(name), natoms_(n_atoms),
                                                                                 charge_(charge), atoms_(atoms) {
     
@@ -126,7 +126,20 @@ void Molecule::molecule_info() const {
 
 }
 
+void Molecule::make_overlap_matrix(std::vector<AO> &MoleculeAOs, arma::mat &overlap_matrix) {
+    int dim = MoleculeAOs.size();
+    // overlap_matrix(dim, dim);
+    for (int i = 0; i < dim; i++) { 
+        for (int j = 0; j <= i; j++) {
+            double overlap_elm = evaluate_contracted_overlap(MoleculeAOs[i], MoleculeAOs[j]); 
+            overlap_matrix(i,j) = overlap_elm;
+            overlap_matrix(j,i) = overlap_elm; 
+            // overlap += Ns_[i] * other.Ns_[j]*ds_[i] * other.ds_[j] * primitive_overlap;
+        }
+    }
+    // return overlap_matrix; 
 
+}
 
 Molecule read_mol(const std::string& molecule_name) {
     std::string filename = molecule_name+".txt";
@@ -175,20 +188,7 @@ Molecule read_mol(const std::string& molecule_name) {
 
 
 
-void make_overlap_matrix(std::vector<AO> &MoleculeAOs, arma::mat &overlap_matrix) {
-    int dim = MoleculeAOs.size();
-    // overlap_matrix(dim, dim);
-    for (int i = 0; i < dim; i++) { 
-        for (int j = 0; j <= i; j++) {
-            double overlap_elm = evaluate_contracted_overlap(MoleculeAOs[i], MoleculeAOs[j]); 
-            overlap_matrix(i,j) = overlap_elm;
-            overlap_matrix(j,i) = overlap_elm; 
-            // overlap += Ns_[i] * other.Ns_[j]*ds_[i] * other.ds_[j] * primitive_overlap;
-        }
-    }
-    // return overlap_matrix; 
 
-}
 void getBasis_data(const std::string&atom_type) {
     std::string filename;
     

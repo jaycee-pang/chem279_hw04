@@ -61,12 +61,13 @@ class Molecule{
     
         // void overlap_matrix();
         void molecule_info() const;
+        void make_overlap_matrix(std::vector<AO> &MoleculeAOs, arma::mat &overlap_matrix);
         // void getBasis_data(const std::string&atom_type);
 
 };
 
 void getBasis_data(const std::string&atom_type); 
 // arma::mat overlap_matrix(const std::vector<AO> &MoleculeAOs); 
-void make_overlap_matrix(std::vector<AO> &MoleculeAOs, arma::mat &overlap_matrix);
+// void make_overlap_matrix(std::vector<AO> &MoleculeAOs, arma::mat &overlap_matrix);
 Molecule read_mol(const std::string& molecule_name); 
 #endif

@@ -10,6 +10,7 @@
 #include <map> 
 #include <armadillo> 
 #include "molecule.h"
+class AO;
 arma::vec C_alphas; arma::vec H_alphas; arma::vec O_alphas;
 arma::vec N_alphas; arma::vec F_alphas;
 arma::mat H1s_coeffs; 
