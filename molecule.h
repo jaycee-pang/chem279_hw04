@@ -1,9 +1,11 @@
-#pragma once
+#ifndef MOLECULE_H
+#define MOLECULE_H
 #include <iostream> 
 #include <armadillo> 
 #include <map> 
 #include <cassert> 
 #include "AO.h"
+// class AO;
 std::map<std::string, int> valence_map = {{"H",1}, {"C",4}, {"N", 5},{"O",6}, {"F", 7}};
 
 std::map<std::string, int> element_map = {{"H",1}, {"C",6}, {"N", 7}, {"O",8}, {"F", 9}};
@@ -62,6 +64,9 @@ class Molecule{
         // void getBasis_data(const std::string&atom_type);
 
 };
+
+void getBasis_data(const std::string&atom_type); 
 // arma::mat overlap_matrix(const std::vector<AO> &MoleculeAOs); 
 void make_overlap_matrix(std::vector<AO> &MoleculeAOs, arma::mat &overlap_matrix);
 Molecule read_mol(const std::string& molecule_name); 
+#endif

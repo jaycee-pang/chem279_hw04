@@ -1,4 +1,6 @@
-#pragma once 
+#ifndef AO_H
+#define AO_H
+
 #include <iostream> 
 #include <vector> 
 #include <stdexcept>
@@ -27,7 +29,8 @@ class AO {
     
     public: 
         AO(); 
-        AO(std::string& shell, arma::vec& R, arma::vec& alphas, arma::vec& d_coeff, arma::uvec& lmn); 
+        // AO(const std::string& shell, arma::vec& R, arma::vec& alphas, arma::vec& d_coeff, arma::uvec& lmn); 
+        AO(const std::string& shell, const arma::vec& R, const arma::vec& alphas, const arma::vec& d_coeff, const arma::uvec& lmn);
 
         double overlap1d(double xa, double xb, double alpha, double beta, int la, int lb) const;
       
@@ -44,6 +47,7 @@ class AO {
 
 
 }; 
+#endif
 double overlap3d(const arma::vec& Ra, const arma::vec& Rb, double alphas, double betas, const arma::uvec& la, const arma::uvec& lb); 
 
 double evaluate_contracted_overlap(const AO& ao1, const AO& ao2); 
@@ -52,7 +56,7 @@ double evaluate_contracted_overlap(const AO& ao1, const AO& ao2);
 double choose(int n, int k); 
 int double_factorial(int n); 
 
-void getBasis_data(const std::string&atom_type); 
+
 // std::ostream& operator<<(std::ostream& os, const PrimitiveGaussian& p) {
 //     std::vector<double> center = p.R(); 
 //     std::vector<int> lmn = p.lmn(); 
