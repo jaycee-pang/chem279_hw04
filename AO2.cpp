@@ -1,10 +1,10 @@
 #include "AO.h"
 // #ifndef AO_H
 // #define AO_H
-// #include "molecule.h"
-// class Molecule; 
-// class AO;
-
+#include "molecule.h"
+class Molecule; 
+class AO;
+AO::AO() {}
 AO::AO(const std::string& shell, const arma::vec& R, const arma::vec& alphas, const arma::vec& d_coeff, const arma::uvec& lmn)
         : shell_type(shell), R_(R), alphas_(alphas), ds_(d_coeff), lmn_(lmn) {
             // normalize and combine these N with the contraction coefficient term 
@@ -14,30 +14,7 @@ AO::AO(const std::string& shell, const arma::vec& R, const arma::vec& alphas, co
             }
 
         }
-  
-  
-void AO::print_AO() const {
-        // std::cout << atom_.print_atom()<< ", " << shell_type<< ", " << lmn_.print() << std::endl;
-        std::cout << shell_type << ", angular momentum: (" << lmn_(0)<< ", " << lmn_(1) << ", " << lmn_(2) << ")"  <<std::endl;
-        std::cout << "alphas: ";
-        for (int i = 0; i < alphas_.n_elem; i++) {
-            std::cout << alphas_(i) << " ";
-        }
-        std::cout << "\ncontraction coefficients: ";
-        for (int i = 0; i < ds_.n_elem; i++) {
-            std::cout << ds_(i) << " ";
-        }
-}
-
-
-
-
-std::string AO::shell() const {return shell_type;} 
-arma::vec AO::R() const{return R_;}
-arma::vec AO::alphas() const {return alphas_;};
-arma::vec AO::ds() const {return ds_;}; 
-arma::uvec AO::lmn() const {return lmn_;}
-double overlap1d(double xa, double xb, double alpha, double beta, int la, int lb) {
+double AO::overlap1d(double xa, double xb, double alpha, double beta, int la, int lb) const {
     double dx = (xa - xb);
     
     double exponential_term = exp(-(alpha*beta*dx*dx)/(alpha+ beta))* sqrt(M_PI / (alpha+ beta));
@@ -59,7 +36,8 @@ double overlap1d(double xa, double xb, double alpha, double beta, int la, int lb
     
     result *= exponential_term; //*result; // *= exponential_term; 
     return result; 
-}
+}  
+      
 double overlap3d(const arma::vec& Ra, const arma::vec& Rb, double alphas, double betas, const arma::uvec& la, const arma::uvec& lb)  {
     double Sabx = overlap1d(Ra(0), Rb(0), alphas, betas, la(0), lb(0));
     double Saby = overlap1d(Ra(1), Rb(1), alphas, betas, la(1), lb(1));
@@ -88,6 +66,21 @@ double evaluate_contracted_overlap(const AO& ao1, const AO& ao2) {
     }
     return sum; 
 }
+void AO::print_AO() const {
+        // std::cout << atom_.print_atom()<< ", " << shell_type<< ", " << lmn_.print() << std::endl;
+        std::cout << shell_type << ", " << lmn_.print() < <std::endl;
+        std::cout <<" alphas: " << alphas_.print() << ",\ncontraction coefficents: " << ds_.print()<< std::endl;
+}
+
+
+
+
+std::string AO::shell() const {return shell_type;} 
+arma::vec AO::R() const{return R_;}
+arma::vec AO::alphas() const {return alphas_;};
+arma::vec AO::ds() const {return ds_;}; 
+arma::uvec AO::lmn() const {return lmn_;}
+
 // #endif 
 double choose(int n, int k) { // n! / k!*(n-k!)!
     if(n < k || k < 0) {

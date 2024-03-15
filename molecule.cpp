@@ -1,21 +1,42 @@
+
 #include "molecule.h"
+#include "AO.h"
+const std::map<std::string, int> valence_map = {{"H",1}, {"C",4}, {"N", 5},{"O",6}, {"F", 7}};
 
+const std::map<std::string, int> element_map = {{"H",1}, {"C",6}, {"N", 7}, {"O",8}, {"F", 9}};
+const std::map<int, std::string> element_reverse = {{1, "H"}, {6, "C"}, {7, "N"}, {8, "O"}, {9, "F"}};
 
-Atom::Atom(int Z, double x, double y, double z): Z(Z), x(x), y(y), z(z),element(element_reverse[Z]) {}
+Atom::Atom(int Z, double x, double y, double z): Z(Z), x(x), y(y), z(z) {
+    auto it = element_reverse.find(Z); 
+    if (it != element_reverse.end()) {
+        element = it->second;
+    }
+    else {
+        throw std::invalid_argument("Atom type not supported.");
+    }
+}
 void Atom::print_atom() const {
     std::cout << "atom : " << element << "atomic number: " << Z << ", ("<< x << "," << y<< ","<<z<< ")" << std::endl;
 }
 // #ifndef MOLECULE_H
 // #define MOLECULE_H
+arma::vec C_alphas; arma::vec H_alphas; arma::vec O_alphas;
+arma::vec N_alphas; arma::vec F_alphas;
+arma::vec H1s_coeffs; 
+arma::vec C2s_coeffs; arma::vec C2p_coeffs; 
+arma::vec O2s_coeffs; arma::vec O2p_coeffs;
+arma::vec N2s_coeffs; arma::vec N2p_coeffs;
+arma::vec F2s_coeffs; arma::vec F2p_coeffs; 
 // #include "AO.h"
-class AO;
+// class AO;
+
 Molecule::Molecule(std::string name, int n_atoms, int charge, std::vector<Atom> atoms) : name_(name), natoms_(n_atoms),
                                                                                 charge_(charge), atoms_(atoms) {
     
-    
+    getBasis_data();
     int a = 0; int b = 0; 
     for (const Atom&atom : atoms) {
-        getBasis_data(atom.element);
+        // getBasis_data();
         if (atom.Z == 6 || atom.Z == 7 || atom.Z == 8 || atom.Z == 9) {
             a++; 
         }
@@ -41,7 +62,71 @@ Molecule::Molecule(std::string name, int n_atoms, int charge, std::vector<Atom> 
     S_.resize(N_, N_);
 
 }
-        
+void getBasis_data() {
+    std::string filename;
+    std::vector<double> alphas;
+    std::vector<double> coeffs_2s;
+    std::vector<double> coeffs_p; // same for px, py, pz
+    // std::vector<std::string> STO3Gfiles = {C_filename = "C_STO3G.txt",
+    //                                         H_filename = "H_STO3G.txt",
+    //                                         N_filename = "N_STO3G.txt",
+    //                                         O_filename = "O_STO3G.txt",
+    //                                         F_filename = "F_STO3G.txt"};
+    std::vector<std::string> STO3Gfiles = {"C_STO3G.txt",
+                                            "H_STO3G.txt",
+                                            "N_STO3G.txt",
+                                            "O_STO3G.txt",
+                                            "F_STO3G.txt"};
+    
+        // throw std::runtime_error("No basis set for this atom type");
+    std::vector<std::string> atom_filenames = {"C", "H", "N", "O", "F"};
+
+    for (size_t i = 0; i < STO3Gfiles.size(); ++i) {
+        std::string filename = STO3Gfiles[i];
+
+        std::ifstream file(filename);
+        if (!file.is_open()) {
+            throw std::runtime_error("Error opening the file " + filename);
+        }
+
+        std::vector<double> alphas;
+        std::vector<double> coeffs_2s;
+        std::vector<double> coeffs_p; // same for px, py, pz
+
+        std::string line;
+        while (std::getline(file, line)) {
+            std::istringstream iss(line);
+            double alpha, coeff_2s, coeff_p;
+            if (!(iss >> alpha >> coeff_2s >> coeff_p)) {
+                std::cerr << "Error reading line: " << line << std::endl;
+                continue;
+            }
+            alphas.push_back(alpha);
+            coeffs_2s.push_back(coeff_2s);
+            coeffs_p.push_back(coeff_p); 
+        }
+
+        if (atom_filenames[i] == "C") {
+            C_alphas = arma::vec(alphas);
+            C2s_coeffs = arma::vec(coeffs_2s);
+            C2p_coeffs = arma::vec(coeffs_p);
+        } else if (atom_filenames[i] == "H") {
+            H_alphas = arma::vec(alphas);
+            H1s_coeffs = arma::vec(coeffs_2s);
+        } else if (atom_filenames[i] == "O") {
+            O_alphas = arma::vec(alphas);
+            O2s_coeffs = arma::vec(coeffs_2s);
+            O2p_coeffs = arma::vec(coeffs_p);
+        } else if (atom_filenames[i] == "N" || atom_filenames[i] == "F") {
+            N_alphas = arma::vec(alphas);
+            N2s_coeffs = arma::vec(coeffs_2s);
+            N2p_coeffs = arma::vec(coeffs_p);
+        }
+
+        file.close();
+    }
+}
+
 std::vector<AO> Molecule::generateAOs() {
     std::vector<AO> AOs; 
     arma::uvec lmn; 
@@ -56,6 +141,7 @@ std::vector<AO> Molecule::generateAOs() {
             AOs.push_back(ao2s);
             // get the correct lmn combo
             for(size_t j = 0; j < 3; j++){
+                arma::uvec lmn;
                 lmn.zeros();
                 lmn(j) = 1;
                 AO ao2p(std::string("C2p"),R, C_alphas, C2p_coeffs, lmn);
@@ -69,6 +155,7 @@ std::vector<AO> Molecule::generateAOs() {
             AOs.push_back(ao2s);
             // get the correct lmn combo
             for(size_t j = 0; j < 3; j++){
+                arma::uvec lmn;
                 lmn.zeros();
                 lmn(j) = 1;
                 AO ao2p(std::string("C2p"),R, N_alphas, N2p_coeffs, lmn);
@@ -82,6 +169,7 @@ std::vector<AO> Molecule::generateAOs() {
             AOs.push_back(ao2s);
             // get the correct lmn combo
             for(size_t j = 0; j < 3; j++){
+                arma::uvec lmn;
                 lmn.zeros();
                 lmn(j) = 1;
                 AO ao2p(std::string("O2p"),R, O_alphas, O2p_coeffs, lmn);
@@ -96,6 +184,7 @@ std::vector<AO> Molecule::generateAOs() {
             AOs.push_back(ao2s);
             // get the correct lmn combo
             for(size_t j = 0; j < 3; j++){
+                arma::uvec lmn;
                 lmn.zeros();
                 lmn(j) = 1;
                 AO ao2p(std::string("F2p"),R, F_alphas, F2p_coeffs, lmn);
@@ -126,7 +215,7 @@ void Molecule::molecule_info() const {
 
 }
 
-void Molecule::make_overlap_matrix(std::vector<AO> &MoleculeAOs, arma::mat &overlap_matrix) {
+void make_overlap_matrix(std::vector<AO> &MoleculeAOs, arma::mat &overlap_matrix) {
     int dim = MoleculeAOs.size();
     // overlap_matrix(dim, dim);
     for (int i = 0; i < dim; i++) { 
@@ -189,161 +278,5 @@ Molecule read_mol(const std::string& molecule_name) {
 
 
 
-void getBasis_data(const std::string&atom_type) {
-    std::string filename;
-    
-    
-    if (atom_type == "C") {
-        filename = "C_STO3G.txt"; 
-        std::vector<double> alphas;
-        std::vector<double> coeffs_2s;
-        std::vector<std::vector<double>> coeffs_p;
-        std::ifstream file(filename);
-        if (!file.is_open()) {
-            throw std::runtime_error("Error opening the file " + filename);
-        }
-        std::string line;
-        while (std::getline(file, line)) {
-            std::istringstream iss(line);
-            double alpha, coeff_2s, coeff_px, coeff_py, coeff_pz;
-            if (!(iss >> alpha >> coeff_2s >> coeff_px >> coeff_py >> coeff_pz)) {
-                std::cerr << "Error reading line: " << line << std::endl;
-                continue;
-            }
-            alphas.push_back(alpha);
-            coeffs_2s.push_back(coeff_2s);
-            coeffs_p.push_back({coeff_px, coeff_py, coeff_pz});
-        }
-        C_alphas = arma::vec(alphas);
-        C2s_coeffs = arma::vec(coeffs_2s);
-        C2p_coeffs = arma::mat(coeffs_p.size(), 3);
-        for (size_t i = 0; i < coeffs_p.size(); ++i) {
-            C2p_coeffs.row(i) = arma::vec(coeffs_p[i]);
-        }
 
-        file.close();
-        
-    }
-    else if(atom_type == "H") {
-        filename = "H_STO3G.txt";
-        std::vector<double> alphas;
-        std::vector<double> coeffs_1s;
-        // std::vector<std::vector<double>> coeffs_p;
-        std::ifstream file(filename);
-        if (!file.is_open()) {
-            throw std::runtime_error("Error opening the file " + filename);
-        }
-        std::string line;
-        while (std::getline(file, line)) {
-            std::istringstream iss(line);
-            double alpha, coeff_1s; 
-            if (!(iss >> alpha >> coeff_1s)) {
-                std::cerr << "Error reading line: " << line << std::endl;
-                continue;
-            }
-            alphas.push_back(alpha);
-            coeffs_1s.push_back(coeff_1s);
-            // coeffs_p.push_back({coeff_px, coeff_py, coeff_pz});
-        }
-        H_alphas = arma::vec(alphas);
-        H1s_coeffs = arma::vec(coeffs_1s);
-
-
-        file.close();
-    }
-    else if (atom_type == "O") {
-        filename = "O_STO3G.txt";
-        std::vector<double> alphas;
-        std::vector<double> coeffs_2s;
-        std::vector<std::vector<double>> coeffs_p;
-        std::ifstream file(filename);
-        if (!file.is_open()) {
-            throw std::runtime_error("Error opening the file " + filename);
-        }
-        std::string line;
-        while (std::getline(file, line)) {
-            std::istringstream iss(line);
-            double alpha, coeff_2s, coeff_px, coeff_py, coeff_pz;
-            if (!(iss >> alpha >> coeff_2s >> coeff_px >> coeff_py >> coeff_pz)) {
-                std::cerr << "Error reading line: " << line << std::endl;
-                continue;
-            }
-            alphas.push_back(alpha);
-            coeffs_2s.push_back(coeff_2s);
-            coeffs_p.push_back({coeff_px, coeff_py, coeff_pz});
-        }
-        O_alphas = arma::vec(alphas);
-        O2s_coeffs = arma::vec(coeffs_2s);
-        O2p_coeffs = arma::mat(coeffs_p.size(), 3);
-        for (size_t i = 0; i < coeffs_p.size(); ++i) {
-            O2p_coeffs.row(i) = arma::vec(coeffs_p[i]);
-        }
-
-        file.close();
-    }
-    else if(atom_type == "N") {
-        filename = "N_STO3G.txt";
-        std::vector<double> alphas;
-        std::vector<double> coeffs_2s;
-        std::vector<std::vector<double>> coeffs_p;
-        std::ifstream file(filename);
-        if (!file.is_open()) {
-            throw std::runtime_error("Error opening the file " + filename);
-        }
-        std::string line;
-        while (std::getline(file, line)) {
-            std::istringstream iss(line);
-            double alpha, coeff_2s, coeff_px, coeff_py, coeff_pz;
-            if (!(iss >> alpha >> coeff_2s >> coeff_px >> coeff_py >> coeff_pz)) {
-                std::cerr << "Error reading line: " << line << std::endl;
-                continue;
-            }
-            alphas.push_back(alpha);
-            coeffs_2s.push_back(coeff_2s);
-            coeffs_p.push_back({coeff_px, coeff_py, coeff_pz});
-        }
-        N_alphas = arma::vec(alphas);
-        N2s_coeffs = arma::vec(coeffs_2s);
-        N2p_coeffs = arma::mat(coeffs_p.size(), 3);
-        for (size_t i = 0; i < coeffs_p.size(); ++i) {
-            N2p_coeffs.row(i) = arma::vec(coeffs_p[i]);
-        }
-
-        file.close();
-    }
-    else if(atom_type == "F") {
-        filename = "F_STO3G.txt";
-        std::vector<double> alphas;
-        std::vector<double> coeffs_2s;
-        std::vector<std::vector<double>> coeffs_p;
-        std::ifstream file(filename);
-        if (!file.is_open()) {
-            throw std::runtime_error("Error opening the file " + filename);
-        }
-        std::string line;
-        while (std::getline(file, line)) {
-            std::istringstream iss(line);
-            double alpha, coeff_2s, coeff_px, coeff_py, coeff_pz;
-            if (!(iss >> alpha >> coeff_2s >> coeff_px >> coeff_py >> coeff_pz)) {
-                std::cerr << "Error reading line: " << line << std::endl;
-                continue;
-            }
-            alphas.push_back(alpha);
-            coeffs_2s.push_back(coeff_2s);
-            coeffs_p.push_back({coeff_px, coeff_py, coeff_pz});
-        }
-        N_alphas = arma::vec(alphas);
-        N2s_coeffs = arma::vec(coeffs_2s);
-        N2p_coeffs = arma::mat(coeffs_p.size(), 3);
-        for (size_t i = 0; i < coeffs_p.size(); ++i) {
-            N2p_coeffs.row(i) = arma::vec(coeffs_p[i]);
-        }
-
-        file.close();
-    }
-    else {
-        throw std::runtime_error("No basis set for this atom type ");
-    }
-
-}
 // #endif 

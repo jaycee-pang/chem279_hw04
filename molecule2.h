@@ -1,15 +1,15 @@
-#pragma once
-#include "molecule.h"
+#ifndef MOLECULE_H
+#define MOLECULE_H
 #include <iostream> 
 #include <armadillo> 
 #include <map> 
 #include <cassert> 
 #include "AO.h"
 // class AO;
-extern const std::map<std::string, int> valence_map;
-extern const std::map<std::string, int> element_map;
-extern const std::map<int, std::string> element_reverse;
+std::map<std::string, int> valence_map = {{"H",1}, {"C",4}, {"N", 5},{"O",6}, {"F", 7}};
 
+std::map<std::string, int> element_map = {{"H",1}, {"C",6}, {"N", 7}, {"O",8}, {"F", 9}};
+std::map<int, std::string> element_reverse = {{1, "H"}, {6, "C"}, {7, "N"}, {8, "O"}, {9, "F"}};
 
 
 const double H1s = -13.6;
@@ -54,17 +54,20 @@ class Molecule{
 
         Molecule(std::string name, int n_atoms, int charge, std::vector<Atom> atoms);
     
+        // arma::vec C_alphas, H_alphas, O_alphas, N_alphas, F_alphas; 
+        // arma::mat C2s_coeffs, C2p_coeffs, H1s_coeffs,O2s_coeffs, O2p_coeffs,
+        //                     N2s_coeffs, N2p_coeffs, F2s_coeffs, F2p_coeffs; 
         std::vector<AO> generateAOs(); 
     
         // void overlap_matrix();
         void molecule_info() const;
-        
-   
+        void make_overlap_matrix(std::vector<AO> &MoleculeAOs, arma::mat &overlap_matrix);
+        // void getBasis_data(const std::string&atom_type);
 
 };
-void make_overlap_matrix(std::vector<AO> &MoleculeAOs, arma::mat &overlap_matrix);
-void getBasis_data(); 
+
+void getBasis_data(const std::string&atom_type); 
 // arma::mat overlap_matrix(const std::vector<AO> &MoleculeAOs); 
 // void make_overlap_matrix(std::vector<AO> &MoleculeAOs, arma::mat &overlap_matrix);
 Molecule read_mol(const std::string& molecule_name); 
-// #endif
+#endif
