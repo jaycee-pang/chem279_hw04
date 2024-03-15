@@ -44,9 +44,13 @@ class Molecule{
         std::vector<Atom> atoms_; // vector of Atom objects (Z, x,y,z)
         arma::vec Zs_; // vector of the atomic numbers for atoms
         std::vector<std::string> atom_elements; // string atom names 
-        std::vector<AO> AOs_; 
-        arma::mat S_; 
+        std::vector<AO> AOs_; // basis functions 
+        arma::mat S_;  // overlap matrix 
+        arma::mat H_; // H matrix
         int n_electrons;
+
+        
+
    
         
     public: 
@@ -58,11 +62,13 @@ class Molecule{
     
         // void overlap_matrix();
         void molecule_info() const;
-        
+        void make_overlap_matrix(); 
+        const arma::mat& S_overlap() const;
+        int routine(); 
    
 
 };
-void make_overlap_matrix(std::vector<AO> &MoleculeAOs, arma::mat &overlap_matrix);
+// void make_overlap_matrix(std::vector<AO> &MoleculeAOs, arma::mat &overlap_matrix);
 void getBasis_data(); 
 // arma::mat overlap_matrix(const std::vector<AO> &MoleculeAOs); 
 // void make_overlap_matrix(std::vector<AO> &MoleculeAOs, arma::mat &overlap_matrix);

@@ -16,10 +16,9 @@ Atom::Atom(int Z, double x, double y, double z): Z(Z), x(x), y(y), z(z) {
     }
 }
 void Atom::print_atom() const {
-    std::cout << "atom : " << element << "atomic number: " << Z << ", ("<< x << "," << y<< ","<<z<< ")" << std::endl;
+    std::cout << "atom: " << element << ", atomic number: " << Z << ", ("<< x << "," << y<< ","<<z<< ")" << std::endl;
 }
-// #ifndef MOLECULE_H
-// #define MOLECULE_H
+
 arma::vec C_alphas; arma::vec H_alphas; arma::vec O_alphas;
 arma::vec N_alphas; arma::vec F_alphas;
 arma::vec H1s_coeffs; 
@@ -54,7 +53,7 @@ Molecule::Molecule(std::string name, int n_atoms, int charge, std::vector<Atom> 
     } 
     else {
         n_ = e_pairs;
-        std::cout << "n pairs" << n_ << std::endl;
+        // std::cout << "n pairs" << n_ << std::endl;
     } 
     AOs_= generateAOs(); 
     N_ = 4*a + b; 
@@ -72,11 +71,11 @@ void getBasis_data() {
     //                                         N_filename = "N_STO3G.txt",
     //                                         O_filename = "O_STO3G.txt",
     //                                         F_filename = "F_STO3G.txt"};
-    std::vector<std::string> STO3Gfiles = {"C_STO3G.txt",
-                                            "H_STO3G.txt",
-                                            "N_STO3G.txt",
-                                            "O_STO3G.txt",
-                                            "F_STO3G.txt"};
+    std::vector<std::string> STO3Gfiles = {"basis/C_STO3G.txt",
+                                            "basis/H_STO3G.txt",
+                                            "basis/N_STO3G.txt",
+                                            "basis/O_STO3G.txt",
+                                            "basis/F_STO3G.txt"};
     
         // throw std::runtime_error("No basis set for this atom type");
     std::vector<std::string> atom_filenames = {"C", "H", "N", "O", "F"};
@@ -97,30 +96,49 @@ void getBasis_data() {
         while (std::getline(file, line)) {
             std::istringstream iss(line);
             double alpha, coeff_2s, coeff_p;
-            if (!(iss >> alpha >> coeff_2s >> coeff_p)) {
+            if (!(iss >> alpha >> coeff_2s)) {
                 std::cerr << "Error reading line: " << line << std::endl;
                 continue;
             }
             alphas.push_back(alpha);
             coeffs_2s.push_back(coeff_2s);
-            coeffs_p.push_back(coeff_p); 
+            
+            if (atom_filenames[i] != "H") {
+                if (!(iss >> coeff_p)) {
+                    std::cerr << "Error reading line: " << line << std::endl;
+                    continue;
+                }
+                coeffs_p.push_back(coeff_p);
+            }
         }
 
         if (atom_filenames[i] == "C") {
             C_alphas = arma::vec(alphas);
             C2s_coeffs = arma::vec(coeffs_2s);
             C2p_coeffs = arma::vec(coeffs_p);
-        } else if (atom_filenames[i] == "H") {
+        } 
+        else if (atom_filenames[i] == "H") {
             H_alphas = arma::vec(alphas);
             H1s_coeffs = arma::vec(coeffs_2s);
-        } else if (atom_filenames[i] == "O") {
+        } 
+        else if (atom_filenames[i] == "O") {
             O_alphas = arma::vec(alphas);
             O2s_coeffs = arma::vec(coeffs_2s);
             O2p_coeffs = arma::vec(coeffs_p);
-        } else if (atom_filenames[i] == "N" || atom_filenames[i] == "F") {
+        } 
+        else if (atom_filenames[i] == "N") {
             N_alphas = arma::vec(alphas);
             N2s_coeffs = arma::vec(coeffs_2s);
             N2p_coeffs = arma::vec(coeffs_p);
+        }
+        else if (atom_filenames[i] == "F") {
+            F_alphas = arma::vec(alphas);
+            F2s_coeffs = arma::vec(coeffs_2s);
+            F2p_coeffs = arma::vec(coeffs_p);
+
+        }
+        else {
+            throw std::invalid_argument("No STO3G basis set for this atom type."); 
         }
 
         file.close();
@@ -205,7 +223,10 @@ std::vector<AO> Molecule::generateAOs() {
 
 
 void Molecule::molecule_info() const {
-    std::cout << name_ << ":" << std::endl; 
+    std::cout << name_ << ", # atoms: "<< natoms_ << ", basis functions: " << N_ << ", e- pairs: " << n_ <<std::endl; 
+    // int natoms_; // number of atoms in the mol
+    //     int N_; // num basis functions 
+    //     int n_; // num AOs electron pairs = total/2 
     for (const Atom& atom: atoms_) {
         atom.print_atom();
     }
@@ -215,19 +236,29 @@ void Molecule::molecule_info() const {
 
 }
 
-void make_overlap_matrix(std::vector<AO> &MoleculeAOs, arma::mat &overlap_matrix) {
-    int dim = MoleculeAOs.size();
+void Molecule::make_overlap_matrix() { // std::vector<AO> &MoleculeAOs, arma::mat &overlap_matrix
+    int dim = AOs_.size();
+
     // overlap_matrix(dim, dim);
     for (int i = 0; i < dim; i++) { 
         for (int j = 0; j <= i; j++) {
-            double overlap_elm = evaluate_contracted_overlap(MoleculeAOs[i], MoleculeAOs[j]); 
-            overlap_matrix(i,j) = overlap_elm;
-            overlap_matrix(j,i) = overlap_elm; 
+            double overlap_elm = evaluate_contracted_overlap(AOs_[i], AOs_[j]); 
+            std::cout << "AO i : " <<std::endl; AOs_[i].print_AO();
+            S_(i,j) = overlap_elm;
+            S_(j,i) = overlap_elm; 
             // overlap += Ns_[i] * other.Ns_[j]*ds_[i] * other.ds_[j] * primitive_overlap;
         }
     }
+    S_.print();
     // return overlap_matrix; 
 
+}
+const arma::mat& Molecule::S_overlap() const {
+    return S_; 
+}
+int Molecule::routine() {
+    // want this to be the driver function 
+    return 0; 
 }
 
 Molecule read_mol(const std::string& molecule_name) {
@@ -261,7 +292,8 @@ Molecule read_mol(const std::string& molecule_name) {
         if (atoms.size() != natoms) {
             throw std::runtime_error("Atom information not consistent.");
         }
-        Molecule mol(filename, natoms, charge, atoms); // will throw an error if not even # electron pairs 
+        
+        Molecule mol(molecule_name, natoms, charge, atoms); // will throw an error if not even # electron pairs 
         file.close();
         return mol;
     }

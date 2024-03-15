@@ -17,16 +17,17 @@ AO::AO(const std::string& shell, const arma::vec& R, const arma::vec& alphas, co
   
   
 void AO::print_AO() const {
-        // std::cout << atom_.print_atom()<< ", " << shell_type<< ", " << lmn_.print() << std::endl;
-        std::cout << shell_type << ", angular momentum: (" << lmn_(0)<< ", " << lmn_(1) << ", " << lmn_(2) << ")"  <<std::endl;
-        std::cout << "alphas: ";
-        for (int i = 0; i < alphas_.n_elem; i++) {
-            std::cout << alphas_(i) << " ";
-        }
-        std::cout << "\ncontraction coefficients: ";
-        for (int i = 0; i < ds_.n_elem; i++) {
-            std::cout << ds_(i) << " ";
-        }
+    // std::cout << atom_.print_atom()<< ", " << shell_type<< ", " << lmn_.print() << std::endl;
+    std::cout << shell_type << ", angular momentum: (" << lmn_(0)<< ", " << lmn_(1) << ", " << lmn_(2) << ")"  <<std::endl;
+    std::cout << "alphas: ";
+    for (int i = 0; i < alphas_.n_elem; i++) {
+        std::cout << alphas_(i) << " ";
+    }
+    std::cout << "\ncontraction coefficients: ";
+    for (int i = 0; i < ds_.n_elem; i++) {
+        std::cout << ds_(i) << " ";
+    }
+    std::cout<<std::endl;
 }
 
 

@@ -23,6 +23,13 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     std::string fname(argv[1]);
+    std::string path_file = "sample_input/"+fname;
+    Molecule molecule = read_mol(path_file);
+    molecule.molecule_info();
+    // molecule.S_.print();
+    molecule.make_overlap_matrix();
+    arma::mat overlap_mat = molecule.S_overlap(); 
+    // overlap_mat.print();
     // try {
     //     num_ele = GenerateAOs(MoleculeAOs, fname, H_STO3G, C_STO3G);
     // }
