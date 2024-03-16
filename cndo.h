@@ -32,19 +32,31 @@ const double au_to_EV = 27.211; // 27.211 eV/au
 class CNDO {
     private:
         arma::mat Fa_; // fock matrix alpha
-
         Molecule molecule; 
         arma::mat Pa_; // alpha density matrix 
         arma::mat Pb_; // beta density matrix 
         arma::mat P_; // density matrix --> alpha or beta should this class be interactive or for both 
         arma::mat Gamma_; // gamma ab matrix gamma_AB is NA xNA (# atoms)
         arma::mat Ca_, Cb_; // C beta matrix  // C alpha matrix
-        arma::mat H_; 
-        arma::mat Fb_; // beta Fock matrix 
+        arma::mat H_; // core Hamiltonian
+        arma::mat Fa_; arma::mat Fb_; // beta Fock matrix 
         int q, p; // num alpha and beta electrons
+        double tol; 
+        int max_it; 
+        int N_; // # basis functions 
+        int natoms_; 
+        int n_electrons;
 
     public: 
-        CNDO()
+        CNDO(Molecule& molecule, double tolerance, int max_it) : molecule(molecule), tol(tolerance), max_it(max_it) {
+            N_ = molecule.N();
+            natoms_ = molecule.natoms(); 
+            n_electrons = molecule.n_electrons();
+            // p = n_electrons / 2 + m; 
+            // q = n_electrons /2 -m; 
+            Gamma_.resize(natoms_, natoms_); // G only relies on atoms A and B 
+
+        }
         void build_F() {
 
         }
@@ -52,18 +64,43 @@ class CNDO {
         void buildH() {
             // need ZA atomic numbers (valence e numbers)
             // beta_AB*S_munu
+            H_.resize(N_, N_);
+            for (const Atom& atom : molecule.atoms()) {
+                for (int i = 0; i < natoms_; i++) {
+                    for (int )
+                int ZA = molecule.get_atom(i); 
+                double gammaA = gamma(i,i); 
+            }
+
+            }
+            
+            
+            int ZB = 
+
+
 
         }
-    
+        // maybe move G calculations to molecule class since it only has to do with atoms 
+     
         void build_G() {
             // use elements of the Pa Pb total density matrix to update
             /* 
             for i < num atoms 
                 for j < atoms 
                     get AO i, get AO j
-                    evlauate the 2 electron integral 
+                    evlauate the 2 electron integral s shell electrons 
             */
+            Gamma_.zeros(natoms_, natoms_);
+            for (int i = 0; i < natoms_; i ++) {
+                for (int j = 0; j < natoms_; j++) {
+                    Atom& atom_i = molecule.get_atom(i);
+                    Atom& atom_j = molecule.get_atom(j);
+                    AO& ao_i = get_AO(atom_i.element + "s");
+                    AO& ao_j = get_AO(atom_j.element+ "s");
+                    Gamma_(i,j) = gamma_ab(ao_i, ao_j);
 
+                }
+           }
 
         }
         void calculate_V() {
@@ -74,6 +111,18 @@ class CNDO {
         void SCF() {
             // Fa, Fb 
             // build core hamiltonian
+            for (int i = 0; i < max_iter; i++) {
+                // build Fock matrix with iniitla guess P 
+                Fa_; 
+                Fb_;
+                // solve eigenvalue problesmm to get MO coeff and eigenvalues FC=Ceps
+                // make new density matrices 
+                //      Pa_ vs Pa_old, Pb_ vs Pb_old
+                // check for convergence 
+                if (arma::aprox_equal(Pa_, Pa, "absdiff", tol))
+
+            }
+            
 
             
 
@@ -81,10 +130,7 @@ class CNDO {
         
 
 };
-/*
-2 electron integral
 
-*/
 double gamma_ab(const AO &ao1, const AO& ao2) {
     arma::uvec lmn1 = ao1.lmn(); arma::uvec lmn2 = ao2.lmn(); 
     arma::uvec lmns = {0, 0, 0}; // s-shell only 
