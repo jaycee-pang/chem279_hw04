@@ -1,4 +1,3 @@
-
 #include "molecule.h"
 #include "AO.h"
 const std::map<std::string, int> valence_map = {{"H",1}, {"C",4}, {"N", 5},{"O",6}, {"F", 7}};
@@ -76,13 +75,13 @@ Molecule::Molecule(std::string name, int n_atoms, int charge, std::vector<Atom> 
 
 }
 int Molecule::N() const {return N_;}
-int Molecule::n_electrons() const { return n_electrons; }
+int Molecule::num_electrons() const { return n_electrons; }
 int Molecule::natoms() const {return natoms_;}
-std::vector<Atom>& Molecule::atoms() const { return atoms_;}
-Atom& Molecule::get_atom(int i) const {return atoms_[i];}
-std::vector<AO>& Molecule::AOs() const {return AOs_;}
+const std::vector<Atom>& Molecule::atoms() const { return atoms_;}
+const Atom& Molecule::get_atom(int i) const {return atoms_[i];}
+const std::vector<AO>& Molecule::AOs() const {return AOs_;}
 // for getting a certain type of basis function ie. s-type, or p-type 
-AO& Molecule::get_AO(std::string shell_type) const {
+const AO& Molecule::get_AO(std::string shell_type) const {
 
     // for (const AO& ao: AOs_) {
     //     if (ao.shell().back() == shell_type) {

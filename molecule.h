@@ -50,31 +50,23 @@ class Molecule{
         arma::mat H_; // H matrix
         arma::mat C_; // coeff matrix 
         int n_electrons;
-
-
-        
-
-   
         
     public: 
-
-
         Molecule(std::string name, int n_atoms, int charge, std::vector<Atom> atoms);
-    
         std::vector<AO> generateAOs(); 
-    
         // void overlap_matrix();
         void molecule_info() const;
         void make_overlap_matrix(); 
         const arma::mat& S_overlap() const;
         int routine(); 
         int N() const;
-        int n_electrons() const;
+        int num_electrons() const;
         int natoms() const; 
-        std::vector<Atom>& atoms() const; 
-        Atom& get_atom(int i) const;
-        std::vector<AO>& AOs() const; 
-        AO& get_AO(std::string label) const; 
+        const std::vector<Atom>& atoms() const; 
+        const Atom& get_atom(int i) const;
+        const std::vector<AO>& AOs() const; 
+        const AO& get_AO(std::string label) const; 
+
         // void make_H_mat(); 
         // void H_mat(); 
    
