@@ -4,6 +4,8 @@
 #include <armadillo> 
 #include <map> 
 #include <cassert> 
+#include <algorithm> 
+#include <iterator> 
 #include "AO.h"
 // class AO;
 extern const std::map<std::string, int> valence_map;
@@ -66,7 +68,9 @@ class Molecule{
         const Atom& get_atom(int i) const;
         const std::vector<AO>& AOs() const; 
         const AO& get_AO(std::string label) const; 
-
+        const std::vector<AO>& atom_AOs(std::string atom_element) const; 
+        int charge() const; 
+        std::string name() const; 
         // void make_H_mat(); 
         // void H_mat(); 
    

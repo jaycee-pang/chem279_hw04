@@ -74,12 +74,14 @@ Molecule::Molecule(std::string name, int n_atoms, int charge, std::vector<Atom> 
 
 
 }
+std::string Molecule::name() const {return name_;}
 int Molecule::N() const {return N_;}
 int Molecule::num_electrons() const { return n_electrons; }
 int Molecule::natoms() const {return natoms_;}
 const std::vector<Atom>& Molecule::atoms() const { return atoms_;}
 const Atom& Molecule::get_atom(int i) const {return atoms_[i];}
 const std::vector<AO>& Molecule::AOs() const {return AOs_;}
+int Molecule::charge() const {return charge_;}
 // for getting a certain type of basis function ie. s-type, or p-type 
 const AO& Molecule::get_AO(std::string shell_type) const {
 
@@ -94,6 +96,26 @@ const AO& Molecule::get_AO(std::string shell_type) const {
         }
     }
     throw std::runtime_error("No AO with " + shell_type + " found.");
+
+}
+// to-do add atom as attribute to AO class to return all AOs for a certain atom 
+// this assumes only one type of atom in a mol --> add N constraints 
+const std::vector<AO>& Molecule::atom_AOs(std::string atom_element) const {
+    int num_AOs;
+    std::vector<AO> selectedAOs;  
+    if (atom_element == "H"){
+        num_AOs = 1; 
+    }
+    else if (atom_element == "C" || atom_element == "N" || atom_element == "O" || atom_element == "F") {
+        num_AOs = 4; 
+    }
+    for (const AO&ao: AOs_) {
+        std::string ao_shell = ao.shell(); 
+        if (ao.shell().compare(0, atom_element.length(), atom_element) == 0) {
+            selectedAOs.push_back(ao);
+        }
+    }
+    return selectedAOs; 
 
 }
 
@@ -240,16 +262,16 @@ void Molecule::molecule_info() const {
 
 void Molecule::make_overlap_matrix() { // std::vector<AO> &MoleculeAOs, arma::mat &overlap_matrix
     int dim = AOs_.size();
-    // overlap_matrix(dim, dim);
     for (int i = 0; i < dim; i++) { 
         for (int j = 0; j <= i; j++) {
             double overlap_elm = evaluate_contracted_overlap(AOs_[i], AOs_[j]); 
-            std::cout << "AO i : " <<std::endl; AOs_[i].print_AO();
+            // std::cout << "AO i : " <<std::endl; AOs_[i].print_AO();
             S_(i,j) = overlap_elm;
             S_(j,i) = overlap_elm; 
         }
     }
-    S_.print();
+    std::cout << S_ << std::endl;
+  
     // return overlap_matrix; 
 
 }

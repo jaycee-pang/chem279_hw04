@@ -20,6 +20,7 @@ class AO {
         arma::vec ds_; // contraction coefficients 
         // aram::vec Ns_; // don't need, normalize upon init in constructor 
         arma::uvec lmn_;
+       
 
     
     public: 
