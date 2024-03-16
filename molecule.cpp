@@ -7,6 +7,13 @@ const std::map<std::string, int> element_map = {{"H",1}, {"C",6}, {"N", 7}, {"O"
 const std::map<int, std::string> element_reverse = {{1, "H"}, {6, "C"}, {7, "N"}, {8, "O"}, {9, "F"}};
 
 Atom::Atom(int Z, double x, double y, double z): Z(Z), x(x), y(y), z(z) {
+    if (Z == 1 || Z == 3) {
+        valence_e = 1; 
+
+    }
+    else if (Z == 6 || Z == 7 || Z == 8 || Z == 9) {
+        valence_e = Z - 2; 
+    }
     auto it = element_reverse.find(Z); 
     if (it != element_reverse.end()) {
         element = it->second;
@@ -28,13 +35,14 @@ arma::vec N2s_coeffs; arma::vec N2p_coeffs;
 arma::vec F2s_coeffs; arma::vec F2p_coeffs; 
 // #include "AO.h"
 // class AO;
-
+// Molecule mol(molecule_name, natoms, charge, atoms);
 Molecule::Molecule(std::string name, int n_atoms, int charge, std::vector<Atom> atoms) : name_(name), natoms_(n_atoms),
                                                                                 charge_(charge), atoms_(atoms) {
     
     getBasis_data();
+
     int a = 0; int b = 0; 
-    for (const Atom&atom : atoms) {
+    for (const Atom&atom : atoms_) {
         // getBasis_data();
         if (atom.Z == 6 || atom.Z == 7 || atom.Z == 8 || atom.Z == 9) {
             a++; 
@@ -45,6 +53,7 @@ Molecule::Molecule(std::string name, int n_atoms, int charge, std::vector<Atom> 
     
      
     }
+
     // epairs should be 1 for H, 2 pairs for C,N,O,F 
     // change for radicals? 
     int e_pairs = 2*a + (b/2); 
@@ -55,10 +64,21 @@ Molecule::Molecule(std::string name, int n_atoms, int charge, std::vector<Atom> 
         n_ = e_pairs;
         // std::cout << "n pairs" << n_ << std::endl;
     } 
-    AOs_= generateAOs(); 
+       
+     
     N_ = 4*a + b; 
-    assert (N_ == AOs_.size());
+    // AOs_.resize(N_);
+    // for (const Atom& atom: atoms_) {
+    //     atom.print_atom();
+    // }
+
+    AOs_ = generateAOs();
+    // std::cout << "after AO generation" << std::endl;
+    // assert (N_ == AOs_.size());
     S_.resize(N_, N_);
+    H_.resize(N_, N_);
+    C_.resize(N_, N_);
+
 
 }
 void getBasis_data() {
@@ -145,82 +165,131 @@ void getBasis_data() {
     }
 }
 
+// std::vector<AO> Molecule::generateAOs() {
+//     std::vector<AO> AOs; 
+//     arma::uvec lmn(3); 
+//     for (const Atom& atom: atoms_) {
+//         arma::vec R = {atom.x, atom.y, atom.z};
+//         switch (atom.Z) {
+
+        
+//             if (atom.Z == 1) {
+//                 AO ao(std::string("H1s"), R, H_alphas, H1s_coeffs, arma::uvec{0,0,0}); 
+//                 AOs.push_back(ao);
+//             }
+//         else if (atom.Z == 6) {
+//             AO ao2s(std::string("C2s"), R, C_alphas, C2s_coeffs, arma::uvec{0,0,0});
+//             AOs.push_back(ao2s);
+//             // get the correct lmn combo
+//             for(size_t j = 0; j < 3; j++){
+//                 arma::uvec lmn;
+//                 lmn.zeros();
+//                 lmn(j) = 1;
+//                 AO ao2p(std::string("C2p"),R, C_alphas, C2p_coeffs, lmn);
+//                 AOs.push_back(ao2p);
+            
+//             }
+
+//         }
+//         else if (atom.Z == 7) {
+//             AO ao2s(std::string("N2s"), R, N_alphas, N2s_coeffs, arma::uvec{0,0,0});
+//             AOs.push_back(ao2s);
+//             // get the correct lmn combo
+//             for(size_t j = 0; j < 3; j++){
+//                 arma::uvec lmn;
+//                 lmn.zeros();
+//                 lmn(j) = 1;
+//                 AO ao2p(std::string("C2p"),R, N_alphas, N2p_coeffs, lmn);
+//                 AOs.push_back(ao2p);
+            
+//             }
+
+//         }
+//         else if (atom.Z == 8) {
+//             AO ao2s(std::string("O2s"), R, O_alphas, O2s_coeffs, arma::uvec{0,0,0});
+//             AOs.push_back(ao2s);
+//             // get the correct lmn combo
+//             for(size_t j = 0; j < 3; j++){
+//                 arma::uvec lmn;
+//                 lmn.zeros();
+//                 lmn(j) = 1;
+//                 AO ao2p(std::string("O2p"),R, O_alphas, O2p_coeffs, lmn);
+//                 AOs.push_back(ao2p);
+            
+//             }
+
+
+//         }
+//         else if (atom.Z == 9) {
+//             AO ao2s(std::string("F2s"), R, F_alphas, F2s_coeffs, arma::uvec{0,0,0});
+//             AOs.push_back(ao2s);
+//             // get the correct lmn combo
+//             for(size_t j = 0; j < 3; j++){
+//                 arma::uvec lmn;
+//                 lmn.zeros();
+//                 lmn(j) = 1;
+//                 AO ao2p(std::string("F2p"),R, F_alphas, F2p_coeffs, lmn);
+//                 AOs.push_back(ao2p);
+            
+//             }
+
+
+//         }
+//         else {
+//             throw std::invalid_argument("No STO3G basis sets for this atom. Only compatable for H, C, N, O, F.");
+//         }
+//         }
+
+//     }
+//     return AOs;
+// }
 std::vector<AO> Molecule::generateAOs() {
     std::vector<AO> AOs; 
-    arma::uvec lmn; 
-    for (const Atom& atom: atoms_) {
-        arma::vec R = {atom.x, atom.y, atom.z};
-        if (atom.Z == 1) {
-            AO ao(std::string("H1s"), R, H_alphas, H1s_coeffs, arma::uvec{0,0,0}); 
-            AOs.push_back(ao);
+    arma::uvec lmn(3);
+    for (const Atom& atom : atoms_) {
+        arma::vec R = { atom.x, atom.y, atom.z };
+        switch (atom.Z) {
+            case 1: 
+                AOs.emplace_back("H1s", R, H_alphas, H1s_coeffs, arma::uvec{0, 0, 0});
+                break;
+            case 6: 
+                AOs.emplace_back("C2s", R, C_alphas, C2s_coeffs, arma::uvec{0, 0, 0});
+                for (size_t j = 0; j < 3; ++j) {
+                    lmn.zeros();
+                    lmn(j) = 1;
+                    AOs.emplace_back("C2p", R, C_alphas, C2p_coeffs, lmn);
+                }
+                break;
+            case 7:
+                AOs.emplace_back("N2s", R, N_alphas, N2s_coeffs, arma::uvec{0, 0, 0});
+                for (size_t j = 0; j < 3; ++j) {
+                    lmn.zeros();
+                    lmn(j) = 1;
+                    AOs.emplace_back("N2p", R, N_alphas, N2p_coeffs, lmn);
+                }
+                break;
+            case 8:
+                AOs.emplace_back("O2s", R, O_alphas, O2s_coeffs, arma::uvec{0, 0, 0});
+                for (size_t j = 0; j < 3; ++j) {
+                    lmn.zeros();
+                    lmn(j) = 1;
+                    AOs.emplace_back("O2p", R, O_alphas, O2p_coeffs, lmn);
+                }
+                break;
+            case 9: 
+                AOs.emplace_back("F2s", R, F_alphas, F2s_coeffs, arma::uvec{0, 0, 0});
+                for (size_t j = 0; j < 3; ++j) {
+                    lmn.zeros();
+                    lmn(j) = 1;
+                    AOs.emplace_back("F2p", R, F_alphas, F2p_coeffs, lmn);
+                }
+                break;
+            default:
+                throw std::invalid_argument("No STO3G basis sets for this atom. Only compatible for H, C, N, O, F.");
         }
-        else if (atom.Z == 6) {
-            AO ao2s(std::string("C2s"), R, C_alphas, C2s_coeffs, arma::uvec{0,0,0});
-            AOs.push_back(ao2s);
-            // get the correct lmn combo
-            for(size_t j = 0; j < 3; j++){
-                arma::uvec lmn;
-                lmn.zeros();
-                lmn(j) = 1;
-                AO ao2p(std::string("C2p"),R, C_alphas, C2p_coeffs, lmn);
-                AOs.push_back(ao2p);
-            
-            }
-
-        }
-        else if (atom.Z == 7) {
-            AO ao2s(std::string("N2s"), R, N_alphas, N2s_coeffs, arma::uvec{0,0,0});
-            AOs.push_back(ao2s);
-            // get the correct lmn combo
-            for(size_t j = 0; j < 3; j++){
-                arma::uvec lmn;
-                lmn.zeros();
-                lmn(j) = 1;
-                AO ao2p(std::string("C2p"),R, N_alphas, N2p_coeffs, lmn);
-                AOs.push_back(ao2p);
-            
-            }
-
-        }
-        else if (atom.Z == 8) {
-            AO ao2s(std::string("O2s"), R, O_alphas, O2s_coeffs, arma::uvec{0,0,0});
-            AOs.push_back(ao2s);
-            // get the correct lmn combo
-            for(size_t j = 0; j < 3; j++){
-                arma::uvec lmn;
-                lmn.zeros();
-                lmn(j) = 1;
-                AO ao2p(std::string("O2p"),R, O_alphas, O2p_coeffs, lmn);
-                AOs.push_back(ao2p);
-            
-            }
-
-
-        }
-        else if (atom.Z == 9) {
-            AO ao2s(std::string("F2s"), R, F_alphas, F2s_coeffs, arma::uvec{0,0,0});
-            AOs.push_back(ao2s);
-            // get the correct lmn combo
-            for(size_t j = 0; j < 3; j++){
-                arma::uvec lmn;
-                lmn.zeros();
-                lmn(j) = 1;
-                AO ao2p(std::string("F2p"),R, F_alphas, F2p_coeffs, lmn);
-                AOs.push_back(ao2p);
-            
-            }
-
-
-        }
-        else {
-            throw std::invalid_argument("No STO3G basis sets for this atom. Only compatable for H, C, N, O, F.");
-        }
-
     }
     return AOs;
 }
-
-
 
 void Molecule::molecule_info() const {
     std::cout << name_ << ", # atoms: "<< natoms_ << ", basis functions: " << N_ << ", e- pairs: " << n_ <<std::endl; 
@@ -235,6 +304,7 @@ void Molecule::molecule_info() const {
     }
 
 }
+
 
 void Molecule::make_overlap_matrix() { // std::vector<AO> &MoleculeAOs, arma::mat &overlap_matrix
     int dim = AOs_.size();
@@ -253,6 +323,8 @@ void Molecule::make_overlap_matrix() { // std::vector<AO> &MoleculeAOs, arma::ma
     // return overlap_matrix; 
 
 }
+// void make_H_mat(); 
+// void H_mat(); 
 const arma::mat& Molecule::S_overlap() const {
     return S_; 
 }
@@ -288,12 +360,17 @@ Molecule read_mol(const std::string& molecule_name) {
         while (file >> Z >> x >> y >> z) {
 
             atoms.emplace_back(Z, x, y, z);
+            
         }
         if (atoms.size() != natoms) {
             throw std::runtime_error("Atom information not consistent.");
         }
         
+
         Molecule mol(molecule_name, natoms, charge, atoms); // will throw an error if not even # electron pairs 
+        for (const Atom& atom: atoms) {
+            atom.print_atom();
+        }
         file.close();
         return mol;
     }

@@ -70,14 +70,10 @@ double overlap3d(const arma::vec& Ra, const arma::vec& Rb, double alphas, double
 
 double evaluate_contracted_overlap(const AO& ao1, const AO& ao2) {
     double sum = 0.0; 
-    arma::vec alphas = ao1.alphas();
-    arma::vec betas = ao2.alphas(); 
-    arma::uvec la = ao1.lmn();
-    arma::uvec lb = ao2.lmn();
-    arma::vec da = ao1.ds();
-    arma::vec db = ao2.ds(); 
-    arma::vec Ra = ao1.R(); 
-    arma::vec Rb = ao2.R(); 
+    arma::vec alphas = ao1.alphas(); arma::vec betas = ao2.alphas(); 
+    arma::uvec la = ao1.lmn(); arma::uvec lb = ao2.lmn();
+    arma::vec da = ao1.ds(); arma::vec db = ao2.ds(); 
+    arma::vec Ra = ao1.R(); arma::vec Rb = ao2.R(); 
     for (size_t k = 0; k < alphas.n_elem; k++ ) {
         double alpha_k = alphas(k); 
         for (size_t j = 0; j < alphas.n_elem; j++) {
