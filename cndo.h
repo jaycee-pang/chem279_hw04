@@ -26,7 +26,9 @@ std::map <std::string, double> semi_emp_s = {{"H1s", 7.716}, {"C2s", 14.051}, {"
                                             {"O2s", 25.390}, {"F2s", 32.272}};
 std::map <std::string, double> semi_emp_p = {{"C2p", 5.572}, {"N2p", 7.275},
                                             {"O2p", 9.111}, {"F2p", 11.080}};
-
+std::map <std::string, double> semi_empirical = {{"H1s", 7.716}, {"C2s", 14.051}, {"N2s", 19.316},
+                                            {"O2s", 25.390}, {"F2s", 32.272}, {"C2p", 5.572}, {"N2p", 7.275},
+                                            {"O2p", 9.111}, {"F2p", 11.080}}; 
 std::map <std::string, int> atomic_bonding = {{"H", 9}, {"C", 21}, {"N", 25}, {"O", 31}, {"F", 39} };
 const double au_to_EV = 27.211; // 27.211 eV/au
 class CNDO {
@@ -46,15 +48,20 @@ class CNDO {
         int N_; // # basis functions 
         int natoms_; 
         int n_electrons;
+        arma::mat S_; // overlap matrix 
 
     public: 
         CNDO(Molecule& molecule, double tolerance, int max_it) : molecule(molecule), tol(tolerance), max_it(max_it) {
             N_ = molecule.N();
             natoms_ = molecule.natoms(); 
             n_electrons = molecule.n_electrons();
+            // make sure S is made, To-Do: bool if S is made in molecule class 
+            molecule.make_overlap_matrix();
+            S_ = molecule.S_overlap(); 
             // p = n_electrons / 2 + m; 
             // q = n_electrons /2 -m; 
             Gamma_.resize(natoms_, natoms_); // G only relies on atoms A and B 
+
 
         }
         void build_F() {
@@ -65,19 +72,39 @@ class CNDO {
             // need ZA atomic numbers (valence e numbers)
             // beta_AB*S_munu
             H_.resize(N_, N_);
-            for (const Atom& atom : molecule.atoms()) {
-                for (int i = 0; i < natoms_; i++) {
-                    for (int )
-                int ZA = molecule.get_atom(i); 
-                double gammaA = gamma(i,i); 
+            int AO_mu = 0; 
+            for (int mu = 0; mu < natoms_; mu++) {
+                const Atom& atomA = molecule.get_atom(mu); 
+                int ZA = atomA.valence_e; 
+                double G_AA = Gamma_(mu,mu); 
+                const std::vector<AO> AAOs = molecule.atom_AOs(atomA.element); 
+                for (const AO& ao_A : AAOs) {
+                    std::string shell_type = ao_A.shell();
+                    double IA = semi_empirical[shell_type]; 
+                    double ZB_GAB = 0.0; // sum 
+                    int AO_nu = 0; 
+                    for (int nu = 0; nu < natoms_; nu++) {
+                        const Atom& atomB = molecule.get_atom(nu); 
+                        const std::vector<AO> BAOs = molecule.atom_AOs(atomB.element); 
+                        int ZB = atomA.valence_e; 
+                        double betaA = atomic_bonding[atomA.element];
+                        double betaB = atomic_bonding[atomB.element]; 
+                        double betaAB = 0.5 * (betaA + betaB);
+                        if (mu!=nu) {
+                            // if atomB != atomA
+                            ZB_GAB += ZB*Gamma_(mu,nu);
+                        }
+                        for (const AO& ao_B :BAOs) {
+                            if (AO_mu != AO_nu) {
+                                H_(AO_mu, AO_nu) = betaAB * S_(AO_mu, AO_nu); 
+                            }
+                            AO_nu ++; 
+                        }
+                    } 
+                    H_(AO_mu, AO_mu) = -IA - (ZA - 0.5) * G_AA - ZB_GAB;
+                    AO_mu++; 
+                }
             }
-
-            }
-            
-            
-            int ZB = 
-
-
 
         }
         // maybe move G calculations to molecule class since it only has to do with atoms 
