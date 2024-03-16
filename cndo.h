@@ -3,6 +3,7 @@
 #include <armadillo> 
 #include <map> 
 #include <vector> 
+#include <cmath> 
 /*
 General algorithm
 1. Guess initial P 
@@ -20,7 +21,7 @@ General algorithm
 */
 
 #include "molecule.h"
-#include 
+
 std::map <std::string, double> semi_emp_s = {{"H1s", 7.716}, {"C2s", 14.051}, {"N2s", 19.316},
                                             {"O2s", 25.390}, {"F2s", 32.272}};
 std::map <std::string, double> semi_emp_p = {{"C2p", 5.572}, {"N2p", 7.275},
@@ -66,7 +67,7 @@ class CNDO {
 
         }
         void calculate_V() {
-            
+
         }
 
         // driver code 
@@ -85,23 +86,54 @@ class CNDO {
 
 */
 double gamma_ab(const AO &ao1, const AO& ao2) {
-    arma::uvec lmn1 = ao1.lmn(); 
-    arma::uvec lmn2 = ao2.lmn(); 
+    arma::uvec lmn1 = ao1.lmn(); arma::uvec lmn2 = ao2.lmn(); 
     arma::uvec lmns = {0, 0, 0}; // s-shell only 
     if (lmn1!= lmns || lmn2!= lmns) {
         throw std::invalid_argument("The two-electron integral evaluation occurs between s-shell only."); 
     }
-    arma::vec da(ao1.ds().size); 
-    arma::vec db(ao2.ds().size); 
-    arma::vec a_alphas = ao1.alphas(); 
-    arma::vec b_alphas = ao2.alphas();
-    arma::vec Ra = ao1.R();
-    arma::vec Rb = ao2.R();
+    
+    arma::vec da(ao1.ds().size); arma::vec db(ao2.ds().size); 
+    arma::vec a_alphas = ao1.alphas(); arma::vec b_alphas = ao2.alphas();
+    assert(a_alphas.size() == b_alphas.size())
+    arma::vec Ra = ao1.R(); arma::vec Rb = ao2.R();
     double sum = 0.0; 
+    // iterate over k, k', l, l' to get all primitives
+    for (size_t k = 0; i < a_alphas.size(); k++) {
+        for (size_t kp = 0; kp < a_alphas.size(); kp++) {
+            double sigma_A = 1.0/(a_alphas(k) + a_alphas(kp));
+            for (size_t l=0; l < b_alphas.size(); l++) {
+                for (size_t lp =0; lp < b_alphas.size(); lp++) {
+                    double sigma_B = 1.0 / (b_alphas(l)+b_alphas(lp)); 
+                    double boys = integral6d(sigma_A, sigma_B, Ra, Rb); 
+                }
+            }
+            sum+= a_alphas(k) * a_alphas(kp)*b_alphas(l) b_alphas(lp) * boys; 
+        }
+    }
+    return sum; 
 
 
 
 
 }
 
-double compute_2e()
+double integral6d(double sigma_A, double sigma_B, arma::vec Ra, arma::vec Rb) {
+    double U_A = std::pow(sigma_A*M_PI, 1.5); 
+    double U_B = std::pow(sigma_B*M_PI, 1.5);
+    double U = U_A*U_B;
+    double V2 = 1/(sigma_A+sigma_B);
+    double R = arma::dot(Ra - Rb, Ra - Rb);
+    double T = V2 * std::pow(R,2);
+    double boys; 
+    if (Ra == Rb) {
+        boys= U*std::sqrt(2*V2)*std::sqrt(2/M_PI);
+    }
+    else {
+        boys = U*std::sqrt(1/(R*R)) *std::erf(std::sqrt(T));
+    }
+    
+    
+    return boys; 
+
+}
+
