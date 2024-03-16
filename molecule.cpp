@@ -50,8 +50,6 @@ Molecule::Molecule(std::string name, int n_atoms, int charge, std::vector<Atom> 
         else if(atom.Z == 1) {
             b++;
         }
-    
-     
     }
 
     // epairs should be 1 for H, 2 pairs for C,N,O,F 
@@ -62,42 +60,55 @@ Molecule::Molecule(std::string name, int n_atoms, int charge, std::vector<Atom> 
     } 
     else {
         n_ = e_pairs;
-        // std::cout << "n pairs" << n_ << std::endl;
-    } 
-       
+    }  
      
     N_ = 4*a + b; 
     // AOs_.resize(N_);
     // for (const Atom& atom: atoms_) {
     //     atom.print_atom();
     // }
-
     AOs_ = generateAOs();
-    // std::cout << "after AO generation" << std::endl;
-    // assert (N_ == AOs_.size());
+    assert (N_ == AOs_.size());
     S_.resize(N_, N_);
     H_.resize(N_, N_);
     C_.resize(N_, N_);
 
 
 }
+int Molecule::N() const {return N_;}
+int Molecule::n_electrons() const { return n_electrons; }
+int Molecule::natoms() const {return natoms_;}
+std::vector<Atom>& Molecule::atoms() const { return atoms_;}
+Atom& Molecule::get_atom(int i) const {return atoms_[i];}
+std::vector<AO>& Molecule::AOs() const {return AOs_;}
+// for getting a certain type of basis function ie. s-type, or p-type 
+AO& Molecule::get_AO(std::string shell_type) const {
+
+    // for (const AO& ao: AOs_) {
+    //     if (ao.shell().back() == shell_type) {
+    //         return ao;
+    //     }
+    // }
+    for (const AO& ao: AOs_) {
+        if (ao.shell() == shell_type) {
+            return ao; 
+        }
+    }
+    throw std::runtime_error("No AO with " + shell_type + " found.");
+
+}
+
 void getBasis_data() {
     std::string filename;
     std::vector<double> alphas;
     std::vector<double> coeffs_2s;
     std::vector<double> coeffs_p; // same for px, py, pz
-    // std::vector<std::string> STO3Gfiles = {C_filename = "C_STO3G.txt",
-    //                                         H_filename = "H_STO3G.txt",
-    //                                         N_filename = "N_STO3G.txt",
-    //                                         O_filename = "O_STO3G.txt",
-    //                                         F_filename = "F_STO3G.txt"};
     std::vector<std::string> STO3Gfiles = {"basis/C_STO3G.txt",
                                             "basis/H_STO3G.txt",
                                             "basis/N_STO3G.txt",
                                             "basis/O_STO3G.txt",
                                             "basis/F_STO3G.txt"};
     
-        // throw std::runtime_error("No basis set for this atom type");
     std::vector<std::string> atom_filenames = {"C", "H", "N", "O", "F"};
 
     for (size_t i = 0; i < STO3Gfiles.size(); ++i) {
@@ -164,6 +175,148 @@ void getBasis_data() {
         file.close();
     }
 }
+
+std::vector<AO> Molecule::generateAOs() {
+    std::vector<AO> AOs; 
+    arma::uvec lmn(3);
+    for (const Atom& atom : atoms_) {
+        arma::vec R = { atom.x, atom.y, atom.z };
+        switch (atom.Z) {
+            case 1: 
+                AOs.emplace_back("H1s", R, H_alphas, H1s_coeffs, arma::uvec{0, 0, 0});
+                break;
+            case 6: 
+                AOs.emplace_back("C2s", R, C_alphas, C2s_coeffs, arma::uvec{0, 0, 0});
+                for (size_t j = 0; j < 3; ++j) {
+                    lmn.zeros();
+                    lmn(j) = 1;
+                    AOs.emplace_back("C2p", R, C_alphas, C2p_coeffs, lmn);
+                }
+                break;
+            case 7:
+                AOs.emplace_back("N2s", R, N_alphas, N2s_coeffs, arma::uvec{0, 0, 0});
+                for (size_t j = 0; j < 3; ++j) {
+                    lmn.zeros();
+                    lmn(j) = 1;
+                    AOs.emplace_back("N2p", R, N_alphas, N2p_coeffs, lmn);
+                }
+                break;
+            case 8:
+                AOs.emplace_back("O2s", R, O_alphas, O2s_coeffs, arma::uvec{0, 0, 0});
+                for (size_t j = 0; j < 3; ++j) {
+                    lmn.zeros();
+                    lmn(j) = 1;
+                    AOs.emplace_back("O2p", R, O_alphas, O2p_coeffs, lmn);
+                }
+                break;
+            case 9: 
+                AOs.emplace_back("F2s", R, F_alphas, F2s_coeffs, arma::uvec{0, 0, 0});
+                for (size_t j = 0; j < 3; ++j) {
+                    lmn.zeros();
+                    lmn(j) = 1;
+                    AOs.emplace_back("F2p", R, F_alphas, F2p_coeffs, lmn);
+                }
+                break;
+            default:
+                throw std::invalid_argument("No STO3G basis sets for this atom. Only compatible for H, C, N, O, F.");
+        }
+    }
+    return AOs;
+}
+
+void Molecule::molecule_info() const {
+    std::cout << name_ << ", # atoms: "<< natoms_ << ", basis functions: " << N_ << ", e- pairs: " << n_ <<std::endl; 
+    // int natoms_; // number of atoms in the mol
+    //     int N_; // num basis functions 
+    //     int n_; // num AOs electron pairs = total/2 
+    for (const Atom& atom: atoms_) {
+        atom.print_atom();
+    }
+    for (const AO& ao: AOs_) {
+        ao.print_AO(); 
+    }
+
+}
+
+
+void Molecule::make_overlap_matrix() { // std::vector<AO> &MoleculeAOs, arma::mat &overlap_matrix
+    int dim = AOs_.size();
+    // overlap_matrix(dim, dim);
+    for (int i = 0; i < dim; i++) { 
+        for (int j = 0; j <= i; j++) {
+            double overlap_elm = evaluate_contracted_overlap(AOs_[i], AOs_[j]); 
+            std::cout << "AO i : " <<std::endl; AOs_[i].print_AO();
+            S_(i,j) = overlap_elm;
+            S_(j,i) = overlap_elm; 
+        }
+    }
+    S_.print();
+    // return overlap_matrix; 
+
+}
+// void make_H_mat(); 
+// void H_mat(); 
+const arma::mat& Molecule::S_overlap() const {
+    return S_; 
+}
+int Molecule::routine() {
+    // want this to be the driver function 
+    return 0; 
+}
+
+Molecule read_mol(const std::string& molecule_name) {
+    std::string filename = molecule_name+".txt";
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        throw std::runtime_error("Error opening the file " + filename);
+    } 
+    try {
+        
+        int natoms; 
+        int charge; 
+        std::vector<Atom> atoms;  
+        std::string line; 
+  
+        if (std::getline(file, line)) {
+            std::istringstream iss(line);
+            if (!(iss >> natoms >> charge)) {
+                throw std::runtime_error("Error reading molecule atoms and charge");
+            }
+        } 
+        else {
+            throw std::runtime_error("Empty file or unable to read the first line.");
+        }
+        int Z; 
+        double x, y, z;
+        while (file >> Z >> x >> y >> z) {
+
+            atoms.emplace_back(Z, x, y, z);
+            
+        }
+        if (atoms.size() != natoms) {
+            throw std::runtime_error("Atom information not consistent.");
+        }
+        
+
+        Molecule mol(molecule_name, natoms, charge, atoms); // will throw an error if not even # electron pairs 
+        for (const Atom& atom: atoms) {
+            atom.print_atom();
+        }
+        file.close();
+        return mol;
+    }
+
+    catch (const std::exception& e) {
+        std::cerr << "Error! " << e.what() << std::endl;
+        file.close();
+
+    }
+    
+}
+
+
+// #endif 
+
 
 // std::vector<AO> Molecule::generateAOs() {
 //     std::vector<AO> AOs; 
@@ -243,149 +396,3 @@ void getBasis_data() {
 //     }
 //     return AOs;
 // }
-std::vector<AO> Molecule::generateAOs() {
-    std::vector<AO> AOs; 
-    arma::uvec lmn(3);
-    for (const Atom& atom : atoms_) {
-        arma::vec R = { atom.x, atom.y, atom.z };
-        switch (atom.Z) {
-            case 1: 
-                AOs.emplace_back("H1s", R, H_alphas, H1s_coeffs, arma::uvec{0, 0, 0});
-                break;
-            case 6: 
-                AOs.emplace_back("C2s", R, C_alphas, C2s_coeffs, arma::uvec{0, 0, 0});
-                for (size_t j = 0; j < 3; ++j) {
-                    lmn.zeros();
-                    lmn(j) = 1;
-                    AOs.emplace_back("C2p", R, C_alphas, C2p_coeffs, lmn);
-                }
-                break;
-            case 7:
-                AOs.emplace_back("N2s", R, N_alphas, N2s_coeffs, arma::uvec{0, 0, 0});
-                for (size_t j = 0; j < 3; ++j) {
-                    lmn.zeros();
-                    lmn(j) = 1;
-                    AOs.emplace_back("N2p", R, N_alphas, N2p_coeffs, lmn);
-                }
-                break;
-            case 8:
-                AOs.emplace_back("O2s", R, O_alphas, O2s_coeffs, arma::uvec{0, 0, 0});
-                for (size_t j = 0; j < 3; ++j) {
-                    lmn.zeros();
-                    lmn(j) = 1;
-                    AOs.emplace_back("O2p", R, O_alphas, O2p_coeffs, lmn);
-                }
-                break;
-            case 9: 
-                AOs.emplace_back("F2s", R, F_alphas, F2s_coeffs, arma::uvec{0, 0, 0});
-                for (size_t j = 0; j < 3; ++j) {
-                    lmn.zeros();
-                    lmn(j) = 1;
-                    AOs.emplace_back("F2p", R, F_alphas, F2p_coeffs, lmn);
-                }
-                break;
-            default:
-                throw std::invalid_argument("No STO3G basis sets for this atom. Only compatible for H, C, N, O, F.");
-        }
-    }
-    return AOs;
-}
-
-void Molecule::molecule_info() const {
-    std::cout << name_ << ", # atoms: "<< natoms_ << ", basis functions: " << N_ << ", e- pairs: " << n_ <<std::endl; 
-    // int natoms_; // number of atoms in the mol
-    //     int N_; // num basis functions 
-    //     int n_; // num AOs electron pairs = total/2 
-    for (const Atom& atom: atoms_) {
-        atom.print_atom();
-    }
-    for (const AO& ao: AOs_) {
-        ao.print_AO(); 
-    }
-
-}
-
-
-void Molecule::make_overlap_matrix() { // std::vector<AO> &MoleculeAOs, arma::mat &overlap_matrix
-    int dim = AOs_.size();
-
-    // overlap_matrix(dim, dim);
-    for (int i = 0; i < dim; i++) { 
-        for (int j = 0; j <= i; j++) {
-            double overlap_elm = evaluate_contracted_overlap(AOs_[i], AOs_[j]); 
-            std::cout << "AO i : " <<std::endl; AOs_[i].print_AO();
-            S_(i,j) = overlap_elm;
-            S_(j,i) = overlap_elm; 
-            // overlap += Ns_[i] * other.Ns_[j]*ds_[i] * other.ds_[j] * primitive_overlap;
-        }
-    }
-    S_.print();
-    // return overlap_matrix; 
-
-}
-// void make_H_mat(); 
-// void H_mat(); 
-const arma::mat& Molecule::S_overlap() const {
-    return S_; 
-}
-int Molecule::routine() {
-    // want this to be the driver function 
-    return 0; 
-}
-
-Molecule read_mol(const std::string& molecule_name) {
-    std::string filename = molecule_name+".txt";
-    std::ifstream file(filename);
-    if (!file.is_open()) {
-        throw std::runtime_error("Error opening the file " + filename);
-    } 
-    try {
-        
-        int natoms; 
-        int charge; 
-        std::vector<Atom> atoms;  
-        std::string line; 
-  
-        if (std::getline(file, line)) {
-            std::istringstream iss(line);
-            if (!(iss >> natoms >> charge)) {
-                throw std::runtime_error("Error reading molecule atoms and charge");
-            }
-        } 
-        else {
-            throw std::runtime_error("Empty file or unable to read the first line.");
-        }
-        int Z; 
-        double x, y, z;
-        while (file >> Z >> x >> y >> z) {
-
-            atoms.emplace_back(Z, x, y, z);
-            
-        }
-        if (atoms.size() != natoms) {
-            throw std::runtime_error("Atom information not consistent.");
-        }
-        
-
-        Molecule mol(molecule_name, natoms, charge, atoms); // will throw an error if not even # electron pairs 
-        for (const Atom& atom: atoms) {
-            atom.print_atom();
-        }
-        file.close();
-        return mol;
-    }
-
-    catch (const std::exception& e) {
-        std::cerr << "Error! " << e.what() << std::endl;
-        file.close();
-
-    }
-    
-}
-
-
-
-
-
-
-// #endif 

@@ -28,6 +28,7 @@ struct Atom {
     std::string element;
     Atom(int Z, double x, double y, double z);
     void print_atom() const; 
+    int valence_e;
 
 }; 
 
@@ -47,7 +48,9 @@ class Molecule{
         std::vector<AO> AOs_; // basis functions 
         arma::mat S_;  // overlap matrix 
         arma::mat H_; // H matrix
+        arma::mat C_; // coeff matrix 
         int n_electrons;
+
 
         
 
@@ -65,6 +68,15 @@ class Molecule{
         void make_overlap_matrix(); 
         const arma::mat& S_overlap() const;
         int routine(); 
+        int N() const;
+        int n_electrons() const;
+        int natoms() const; 
+        std::vector<Atom>& atoms() const; 
+        Atom& get_atom(int i) const;
+        std::vector<AO>& AOs() const; 
+        AO& get_AO(std::string label) const; 
+        // void make_H_mat(); 
+        // void H_mat(); 
    
 
 };
