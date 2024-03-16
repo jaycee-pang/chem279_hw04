@@ -65,6 +65,49 @@ class CNDO {
 
         }
         void build_F() {
+            int AO_mu = 0; 
+            for (int i = 0; i < natoms_; i++) {
+                const Atom& atomA = molecule.get_atom(i);
+                const std::vector<AO> AAOs = molecule.atom_AOs(atomA.element); 
+                int ZA = atomA.valence_e; 
+                // for same atom AA; 
+                for (const AO& ao_A: AAOs) {
+                    std::string shell_type = ao_A.shell();
+                    double IA = semi_empirical[shell_type]; 
+                    double betaA = atomic_bonding[atomA.element];
+                    // density elements for alpha and beta for A 
+                    double pAA_alpha = Pa_(AO_mu, AO_mu); 
+                    double pAA_beta = Pb(AO_mu, AO_mu);
+                    double G_AA = Gamma_(i,i); // like gamma_AA 
+                    
+                    Fa_(AO_mu, AO_mu) = -IA + ((pAA_alpha - ZA) - (pAA_alpha - 0.5))  * G_AA; // sum (pBB-ZB)*GAB;
+                    Fb_(AO_mu, AO_mu) = -IA + ((pAA_alpha - ZA) - (pAA_beta - 0.5))  * G_AA;
+
+                    // for B!=A 
+                    for (int j = 0; j < natoms_; j++) {
+                        
+                        if (i!=j) {
+                            const Atom& atomB = molecule.get_atom(j);
+                            const std::vector<AO> BAOs = molecule.atom_AOs(atomB.element); 
+                            double G_AB = G_(i,j); 
+                            double betaB = atomic_bonding[atomB.element];
+                            double betaAB = 0.5 * (betaA + betaB);
+
+                            for (const AO& ao_B : BAOs) {
+                                for (int AO_nu = 0; AO_nu < N_; AO_nu++) {
+                                    // Adjust condition if necessary
+                                    if (AO_mu != AO_nu) {
+                                        Fa_(AO_mu, AO_nu) += betaAB * S(AO_mu, AO_nu) - Pa_(AO_mu, AO_nu) * G_AB; 
+                                        Fb_(AO_mu, AO_nu) += betaAB * S(AO_mu, AO_nu) - Pb_(AO_mu, AO_nu) * G_AB;
+                                    }
+                                }
+                            }
+                        }
+
+                        
+                    }
+                    AO_mu++;
+                }
 
         }
         // core Hamiltonian
