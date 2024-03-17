@@ -74,6 +74,7 @@ class CNDO {
         double integral6d(double sigma_A, double sigma_B, arma::vec Ra, arma::vec Rb);
         void print_CNDO_info() const; 
         void print_SCF() const; 
+        // void update_F(); 
 
 };
 

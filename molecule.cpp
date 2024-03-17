@@ -6,12 +6,15 @@ const std::map<std::string, int> element_map = {{"H",1}, {"C",6}, {"N", 7}, {"O"
 const std::map<int, std::string> element_reverse = {{1, "H"}, {6, "C"}, {7, "N"}, {8, "O"}, {9, "F"}};
 
 Atom::Atom(int Z, double x, double y, double z): Z(Z), x(x), y(y), z(z) {
-    if (Z == 1 || Z == 3) {
+   
+    if (Z == 1) {
         valence_e = 1; 
+        n_basis=1;
 
     }
     else if (Z == 6 || Z == 7 || Z == 8 || Z == 9) {
         valence_e = Z - 2; 
+        n_basis=4; 
     }
     auto it = element_reverse.find(Z); 
     if (it != element_reverse.end()) {
@@ -62,6 +65,7 @@ Molecule::Molecule(std::string name, int n_atoms, int charge, std::vector<Atom> 
     }  
      
     N_ = 4*a + b; 
+    n_electrons = num_electrons(); 
     // AOs_.resize(N_);
     // for (const Atom& atom: atoms_) {
     //     atom.print_atom();
@@ -76,7 +80,21 @@ Molecule::Molecule(std::string name, int n_atoms, int charge, std::vector<Atom> 
 }
 std::string Molecule::name() const {return name_;}
 int Molecule::N() const {return N_;}
-int Molecule::num_electrons() const { return n_electrons; }
+int Molecule::num_electrons() const { 
+    int e = 0; 
+    for (int i = 0; i < natoms_; i++) {
+        if (atoms_[i].Z == 1) {
+            e +=1; 
+        }
+        else if(atoms_[i].Z == 6 ||atoms_[i].Z == 7 ||atoms_[i].Z == 8 ||atoms_[i].Z == 9 ) {
+            e += (atoms_[i].Z-2); 
+        }
+    }
+    e -= charge_; 
+    // n_electrons = e; 
+    return e; 
+    
+}
 int Molecule::natoms() const {return natoms_;}
 const std::vector<Atom>& Molecule::atoms() const { return atoms_;}
 const Atom& Molecule::get_atom(int i) const {return atoms_[i];}
@@ -98,23 +116,29 @@ const AO& Molecule::get_AO(std::string shell_type) const {
     throw std::runtime_error("No AO with " + shell_type + " found.");
 
 }
+
 // to-do add atom as attribute to AO class to return all AOs for a certain atom 
 // this assumes only one type of atom in a mol --> add N constraints 
-const std::vector<AO>& Molecule::atom_AOs(std::string atom_element) const {
+const std::vector<AO> Molecule::atom_AOs(std::string atom_element) const {
     int num_AOs;
     std::vector<AO> selectedAOs;  
-    if (atom_element == "H"){
+    if (atom_element == "H") {
         num_AOs = 1; 
-    }
-    else if (atom_element == "C" || atom_element == "N" || atom_element == "O" || atom_element == "F") {
+    } else if (atom_element == "C" || atom_element == "N" || atom_element == "O" || atom_element == "F") {
         num_AOs = 4; 
     }
-    for (const AO&ao: AOs_) {
+    int count = 0;
+    for (const AO& ao : AOs_) {
         std::string ao_shell = ao.shell(); 
-        if (ao.shell().compare(0, atom_element.length(), atom_element) == 0) {
+        if (ao.shell().compare(0, atom_element.length(), atom_element) == 0 && count < num_AOs) {
             selectedAOs.push_back(ao);
+            count++;
+        }
+        if (count == num_AOs) {
+            break;  
         }
     }
+    // std::cout << "specific atom selected AOs size: " << selectedAOs.size() << std::endl;
     return selectedAOs; 
 
 }

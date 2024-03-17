@@ -5,7 +5,7 @@ OBJS = molecule.o AO.o cndo.o
 LIB = mylib.a 
 
 # OBJS = AO_Zhe.o EH_Zhe.o util.o
-EXECS = main
+EXECS = main explore
 
 all: $(EXECS)
 # util.o: util.cpp util.h
@@ -29,6 +29,8 @@ $(LIB): $(OBJS)
 
 main: main.cpp $(OBJS) $(LIB)
 	$(CPP) $(CPPFLAGS) -o main main.cpp $(OBJS) $(LIB) $(ARMA_INCL)
+explore: explore.cpp $(OBJS) $(LIB)
+	$(CPP) $(CPPFLAGS) -o explore explore.cpp $(OBJS) $(LIB) $(ARMA_INCL)
 
 clean:
 	rm -f $(OBJS) $(EXECS) $(LIB)

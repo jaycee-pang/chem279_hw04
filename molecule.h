@@ -31,6 +31,7 @@ struct Atom {
     Atom(int Z, double x, double y, double z);
     void print_atom() const; 
     int valence_e;
+    int n_basis; 
 
 }; 
 
@@ -68,7 +69,7 @@ class Molecule{
         const Atom& get_atom(int i) const;
         const std::vector<AO>& AOs() const; 
         const AO& get_AO(std::string label) const; 
-        const std::vector<AO>& atom_AOs(std::string atom_element) const; 
+        const std::vector<AO> atom_AOs(std::string atom_element) const; 
         int charge() const; 
         std::string name() const; 
         // void make_H_mat(); 

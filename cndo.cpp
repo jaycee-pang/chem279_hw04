@@ -15,18 +15,28 @@ CNDO::CNDO(Molecule& molecule, double tolerance, int max_it) : molecule(molecule
     // make sure S is made, To-Do: bool if S is made in molecule class 
     molecule.make_overlap_matrix();
     S_ = molecule.S_overlap(); 
-    // q_ = int(n_electrons /2); 
-    // p_ = (n_electrons-q); 
-    find_ooc();
+    std::cout << "total electrons: " << n_electrons_ << std::endl;
+    q_ = n_electrons_ /2; 
+    p_ = (n_electrons_-q_); 
+    std::cout << "p: " << p_ << ", q: " << q_ << std::endl;
+       // find_ooc();
     Gamma_.resize(natoms_, natoms_); // G only relies on atoms A and B 
-    build_G(); 
+    Ga_.zeros(); 
+    Gb_.zeros();
+    
     Gamma_ *= au_to_EV; 
     Pa_.resize(N_, N_); Pb_.resize(N_, N_);
     Ga_.resize(N_, N_); Gb_.resize(N_, N_);
+    build_G(); 
+    
     Eel_ = 0.0; Etot_ = 0.0; 
     calc_Ec(); 
+    // std::cout << "Ec: " << Ec_ << std::endl;
     Ea_.resize(N_); Eb_.resize(N_);
+    H_.resize(N_, N_);
+    H_.zeros(N_, N_);
     buildH(); 
+    H_.print();
 
 
 }
@@ -103,15 +113,26 @@ void CNDO::build_G() {
             get AO i, get AO j
             evlauate the 2 electron integral s shell electrons 
     */
-    Gamma_.zeros();
+
+    // Gamma_.zeros();
+    // for (int i = 0; i < natoms_; i++) {
+    //     for (int j = 0; j < natoms_; j++) {
+    //         double gamma_ij = compute_gamma_ij(i, j); 
+    //         Gamma_(i, j) = gamma_ij;
+    //     }
+    // }
+    
+    
     for (int i = 0; i < natoms_; i ++) {
         for (int j = 0; j < natoms_; j++) {
             const Atom& atom_i = molecule.get_atom(i);
             const Atom& atom_j = molecule.get_atom(j);
             std::string atomi_shell = atom_i.element + (atom_i.Z == 1 ? "1s" : "2s");
+            // std::cout << "atom i " << atomi_shell << std::endl;
             const AO& ao_i = molecule.get_AO(atomi_shell);
             std::string atomj_shell = atom_j.element + (atom_j.Z == 1 ? "1s" : "2s");
             const AO& ao_j = molecule.get_AO(atomj_shell);
+            // std::cout << "atom j " << atomj_shell <<std::endl;
             Gamma_(i,j) = gamma_ab(ao_i, ao_j);
             // std::cout << atomi_shell << ", " << atomj_shell << std::endl;
 
@@ -157,8 +178,6 @@ void CNDO::build_F() {
                             double gamma_AB = Gamma_(i, j);
                             if (AO_mu != AO_nu) {
                                 
-                                
-
                                 Fa_(AO_mu, AO_nu) += betaAB * S_(AO_mu, AO_nu) - Pa_(AO_mu, AO_nu) * G_AB; 
                                 Fb_(AO_mu, AO_nu) += betaAB * S_(AO_mu, AO_nu) - Pb_(AO_mu, AO_nu) * G_AB;
                             }
@@ -184,40 +203,42 @@ void CNDO::buildH() {
     // need ZA atomic numbers (valence e numbers)
     // beta_AB*S_munu
     H_.resize(N_, N_);
-    H_.zeros(N_, N_);
-    int AO_mu = 0; 
-    for (int mu = 0; mu < natoms_; mu++) {
-        const Atom& atomA = molecule.get_atom(mu); 
-        int ZA = atomA.valence_e; 
-        double G_AA = Gamma_(mu,mu); 
-        const std::vector<AO> AAOs = molecule.atom_AOs(atomA.element); 
-        for (const AO& ao_A : AAOs) {
-            std::string shell_type = ao_A.shell();
-            double IA = semi_empirical[shell_type]; 
-            double ZB_GAB = 0.0; // sum 
-            int AO_nu = 0; 
-            for (int nu = 0; nu < natoms_; nu++) {
-                const Atom& atomB = molecule.get_atom(nu); 
-                const std::vector<AO> BAOs = molecule.atom_AOs(atomB.element); 
-                int ZB = atomA.valence_e; 
-                double betaA = atomic_bonding[atomA.element];
-                double betaB = atomic_bonding[atomB.element]; 
-                double betaAB = 0.5 * (betaA + betaB);
-                if (mu!=nu) {
-                    // if atomB != atomA
-                    ZB_GAB += ZB*Gamma_(mu,nu);
-                }
-                for (const AO& ao_B :BAOs) {
-                    if (AO_mu != AO_nu) {
-                        H_(AO_mu, AO_nu) = betaAB * S_(AO_mu, AO_nu); 
+    // 
+
+    for (int mu = 0; mu < N_; mu++) {
+        for (int nu = 0; nu < N_; nu++) {
+            double H_mu_nu = 0.0;
+            for (int i = 0; i < natoms_; i++) {
+                const Atom& atomA = molecule.get_atom(i);
+                // atomA.print_atom(); 
+               
+                const std::vector<AO>& AAOs = molecule.atom_AOs(atomA.element);
+                // std::cout << "AAos size: " << AAOs.size() << std::endl;
+                for (const AO& ao_A : AAOs) {
+                    // ao_A.print_AO();
+                    double IA = semi_empirical[ao_A.shell()];
+                    
+                    int AO_mu = i * atomA.n_basis + mu; 
+                    // ZA
+                    H_mu_nu += -0.5 * (IA + atomA.valence_e - 0.5) * Gamma_(i, i) * S_(mu, nu); // IA , gamma_AA
+                    for (int j = 0; j < natoms_; j++) {
+                        if (i != j) {
+                            const Atom& atomB = molecule.get_atom(j);
+                            double ZB = atomB.valence_e;
+                            double G_AB = Gamma_(i, j);
+                            
+                            double betaA = atomic_bonding[atomA.element];
+                            double betaB = atomic_bonding[atomB.element];
+                            double beta_AB = 0.5 * (betaA + betaB);
+                            H_mu_nu += 0.5 * (betaA + betaB) * S_(mu, nu) * (1 - (mu == nu)) * G_AB; // beta_AB * G_AB
+                        }
                     }
-                    AO_nu ++; 
                 }
-            } 
-            H_(AO_mu, AO_mu) = -IA - (ZA - 0.5) * G_AA - ZB_GAB;
-            AO_mu++; 
+            }
+            H_(mu, nu) = H_mu_nu;
         }
     }
+
 
 }
        
@@ -235,8 +256,7 @@ void CNDO::update_P() {
     }
 }
 void CNDO::G_ab() {
-    Ga_.zeros(); 
-    Gb_.zeros();
+    
     arma::vec P_tot = arma::zeros(natoms_);
     int AO_mu = 0; 
     // get total density 
@@ -279,11 +299,13 @@ void CNDO::G_ab() {
     }
 
 }
+
 void CNDO::calc_Ec() {
     Ec_  = 0.0; 
     for (int i = 0; i < natoms_; i++) {
+        const Atom& atom_i = molecule.get_atom(i); 
         for (int j = i+1; j<natoms_; j++) {
-            const Atom& atom_i = molecule.get_atom(i); 
+            
             const Atom& atom_j = molecule.get_atom(j);
             arma::vec Ra = {atom_i.x, atom_i.y, atom_i.z}; 
             arma::vec Rb = {atom_j.x, atom_j.y, atom_j.z}; 
@@ -295,15 +317,29 @@ void CNDO::calc_Ec() {
         
         }
     }
+    Ec_ /= 2.0; // e piars
     Ec_ *= au_to_EV; 
 
 }
+
 double CNDO::calculate_E() {
-    P_ = Pa_ + Pb_;
-    Eel_ = arma::dot(Pa_, Ga_) / 2.0 + arma::dot(Pb_, Gb_)/2.0 + arma::dot(P_, H_);
-    Etot_ = Eel_ + Ec_; 
+    // 
+    // Etot_ = 0.0; 
+    Eel_ += 0.5 * arma::dot(Pa_, H_ + Fa_) + 0.5 * arma::dot(Pb_, H_ + Fb_);
+    Etot_ += Ec_ + Eel_;
+ 
+    // Etot_ = Eel_ + Ec_; 
     return Etot_; 
+    
 }
+// void CNDO::update_F() {
+//     update_P();
+//     Fa_ = H_ + 2 * Ga_ - Gb_;
+//     // F_beta = H + 2 * Gb - Ga
+//     Fb_ = H_ + 2 * Gb_ - Ga_; 
+
+
+// }
 
 // driver code 
 void CNDO::SCF() {
@@ -311,23 +347,35 @@ void CNDO::SCF() {
     // initial guess for P, guess all 0
     Pa_.zeros();
     Pb_.zeros();
-    std::cout << "initial guess: \nPa: " << Pa_ << "\nPb:" << Pb_ << std::endl; 
+    print_CNDO_info();
+    // std::cout << "initial guess: \nPa: " << Pa_ << "\nPb:" << Pb_ << std::endl; 
     // Fa, Fb 
-    Fa_ = H_ + Ga_; 
-    Fb_ = H_ + Gb_; 
+    // place holders 
+    Fa_ = H_ + 2 * Ga_ - Gb_;
+    Fb_ = H_ + 2 * Gb_ - Ga_;
+    // Fa_ = H_ + Ga_; 
+    // Fb_ = H_ + Gb_; 
+    build_F();
+    // std::cout << "Fa" << Fa_ << std::endl;
     
     // build core hamiltonian
     for (int i = 0; i < max_it; i++) {
-        G_ab(); // this does for current P 
+        // G_ab(); // this does for current P 
         // build Fock matrix with iniitla guess P 
+        // build_F(); 
+        G_ab();
+        build_F();
+        
+        
         std::cout << "Iteration: " << i << std::endl;
-        Fa_ = H_ + Ga_; 
-        Fb_ = H_ + Gb_;
+        
+
         arma::eig_sym(Ea_, Ca_, Fa_); 
         arma::eig_sym(Eb_, Cb_, Fb_);
         arma::mat Pa_old = Pa_; 
         arma::mat Pb_old = Pb_; 
-        update_P(); 
+        update_P();
+
         // solve eigenvalue problesmm to get MO coeff and eigenvalues FC=Ceps
         // make new density matrices 
         //      Pa_ vs Pa_old, Pb_ vs Pb_old
@@ -349,16 +397,17 @@ void CNDO::SCF() {
 
 } 
 void CNDO::print_CNDO_info() const {
-    std::cout << "gamma:" << Gamma_ << std::endl;
-    std::cout << "overlap:" << S_ << std::endl;
+    std::cout << "gamma:\n" << Gamma_ << std::endl;
+    std::cout << "overlap:\n" << S_ << std::endl;
     std::cout << "p: " << p_ << ", q: " << q_ << std::endl;
-    std::cout << "core Hamiltonian:" << H_ << std::endl; 
+    std::cout << "core Hamiltonian:\n" << H_ << std::endl; 
     
     
 }
 void CNDO::print_SCF() const {
     std::cout << "Fa:\n" << Fa_ << "Fb:\n" << Fb_<< std::endl; 
     std::cout << "Ca:\n" << Ca_ << "Cb:\n" << Cb_ << std::endl;
+    std::cout << "Ea:\n" << Ea_ << "Eb:\n" << Eb_ << std::endl;
     std::cout << "Pa:\n" <<Pa_ << "Pb:\n" << Pb_ << std::endl;
     std::cout << "Ga:\n" <<Ga_ << "Gb:\n" << Gb_ << std::endl;
 
