@@ -1,5 +1,5 @@
 # chem279_hw04
-git@github.com:jaycee-pang/chem279_hw04.git
+https://github.com/jaycee-pang/chem279_hw04
 Object files: 
 - `molecule.o`: Contains implementations of the `Atom` struct and `Molecule` clas with functions to read in data from .txt files located in sample_input/ and various printing functions, this is where the main EHT calculations occur, build basis functions from STO-3G basis sets, call functions of AO objects (basis functions to represent an atomic orbital). Instantiate atoms, molecules, and build basis functions based on atoms in the molecule. Every molecule has a struct of Atoms that store the atomic number, coords, and element names. From the atoms listed, the molecule will build the basis set based on the atom types (hard-coded for shell-types eg. "H1s", "C2s", "C2p", etc.) as a vector of AO objects that store angular momentum quantum numbers, the contraction coefficients, alpha exponents, and atomic centers. Here is where the overlap matrix function will be called to build S. 
 
